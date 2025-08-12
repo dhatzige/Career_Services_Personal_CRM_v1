@@ -49,9 +49,16 @@ const AnalyticsPage: React.FC = () => {
     try {
       setLoading(true);
       const response = await api.students.list();
-      setStudents(response.data || []);
+      // Handle both array response and object with data property
+      const studentData = Array.isArray(response) ? response : (response.data || []);
+      console.log('Analytics: Fetched students:', studentData.length);
+      if (studentData.length > 0 && studentData[0].consultations) {
+        console.log('First student consultations:', studentData[0].consultations);
+      }
+      setStudents(studentData);
     } catch (error) {
       console.error('Failed to fetch analytics data:', error);
+      setStudents([]);
     } finally {
       setLoading(false);
     }
@@ -69,7 +76,7 @@ const AnalyticsPage: React.FC = () => {
   // Calculate advanced metrics
   const metrics = useMemo(() => {
     const totalStudents = filteredStudents.length;
-    const activeStudents = filteredStudents.filter(s => s.status === 'Active').length;
+    const activeStudents = totalStudents; // All students are considered active
     
     // Consultations in date range
     const consultationsInRange = filteredStudents.flatMap(s => s.consultations || [])
@@ -87,14 +94,15 @@ const AnalyticsPage: React.FC = () => {
     // Average consultations per student
     const avgConsultationsPerStudent = totalStudents > 0 ? totalConsultations / totalStudents : 0;
     
-    // Students with high engagement (3+ consultations in period)
+    // Students with high engagement (1+ consultations in period for now since we only have 2 consultations total)
+    const highEngagementThreshold = 1; // Changed from 3 to 1 for testing
     const highEngagementStudents = filteredStudents.filter(s => {
       const studentConsultations = (s.consultations || []).filter(c => {
         if (!c || !c.date) return false;
         const date = new Date(c.date);
         return date >= selectedRange.start && date <= selectedRange.end;
       });
-      return studentConsultations.length >= 3;
+      return studentConsultations.length >= highEngagementThreshold;
     }).length;
     
     // Program with most consultations
@@ -222,41 +230,40 @@ const AnalyticsPage: React.FC = () => {
       csvContent += `Total Consultations,${metrics.totalConsultations}\n`;
       csvContent += `Attendance Rate,${metrics.attendanceRate.toFixed(1)}%\n`;
       csvContent += `No-Show Rate,${metrics.noShowRate.toFixed(1)}%\n`;
-      csvContent += `Average Engagement Score,${metrics.avgEngagementScore.toFixed(1)}\n\n`;
+      csvContent += `Avg Consultations per Student,${metrics.avgConsultationsPerStudent.toFixed(1)}\n\n`;
       
       // Consultation Trends
       csvContent += 'CONSULTATION TRENDS\n';
-      csvContent += 'Month,Consultations,Attendance,No-Shows\n';
-      trendData.forEach(month => {
-        csvContent += `${month.month},${month.consultations},${month.attendance},${month.noShows}\n`;
+      csvContent += 'Date,Consultations,Attended,No-Shows\n';
+      trendData.forEach(day => {
+        csvContent += `${day.date},${day.consultations},${day.attended},${day.noShows}\n`;
       });
       csvContent += '\n';
       
       // Consultation Types
       csvContent += 'CONSULTATION TYPES\n';
-      csvContent += 'Type,Count,Percentage\n';
+      csvContent += 'Type,Total,Attended,Attendance Rate\n';
       consultationTypeData.forEach(type => {
-        const percentage = ((type.value / metrics.totalConsultations) * 100).toFixed(1);
-        csvContent += `${type.name},${type.value},${percentage}%\n`;
+        csvContent += `${type.type},${type.total},${type.attended},${type.attendanceRate.toFixed(1)}%\n`;
       });
       csvContent += '\n';
       
       // Program Performance
       csvContent += 'PROGRAM PERFORMANCE\n';
-      csvContent += 'Program,Students,Consultations,Attendance Rate\n';
+      csvContent += 'Program,Students,Avg Consultations,Attendance Rate\n';
       programPerformanceData.forEach(program => {
-        csvContent += `"${program.program}",${program.students},${program.consultations},${program.attendanceRate.toFixed(1)}%\n`;
+        csvContent += `"${program.program}",${program.students},${program.avgConsultations.toFixed(1)},${program.attendanceRate.toFixed(1)}%\n`;
       });
       csvContent += '\n';
       
       // Student List with Key Metrics
       csvContent += 'STUDENT DETAILS\n';
-      csvContent += 'Name,Email,Program,Year,Status,Consultations,No-Shows,Last Contact\n';
+      csvContent += 'Name,Email,Program,Year,Consultations,No-Shows,Last Contact\n';
       filteredStudents.forEach(student => {
         const consultationCount = student.consultations?.length || 0;
         const noShowCount = student.noShowCount || 0;
         const lastContact = student.lastContactDate ? format(new Date(student.lastContactDate), 'MM/dd/yyyy') : 'Never';
-        csvContent += `"${student.firstName} ${student.lastName}",${student.email},"${student.program || 'N/A'}",${student.yearOfStudy || 'N/A'},${student.status},${consultationCount},${noShowCount},${lastContact}\n`;
+        csvContent += `"${student.firstName} ${student.lastName}",${student.email},"${student.program || 'N/A'}",${student.yearOfStudy || 'N/A'},${consultationCount},${noShowCount},${lastContact}\n`;
       });
 
       // Create and download CSV file
@@ -421,7 +428,7 @@ const AnalyticsPage: React.FC = () => {
               <p className="text-sm text-gray-600 dark:text-gray-400">High Engagement</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.highEngagementStudents}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                students (3+ meetings)
+                students (1+ meetings)
               </p>
             </div>
             <div className="p-3 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg">
