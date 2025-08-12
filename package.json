@@ -4,7 +4,7 @@
   "description": "Backend API for Personal CRM application",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npm install && tsc",
     "start": "node dist/server.js",
     "dev": "nodemon",
     "db:migrate": "ts-node src/database/migrate.ts",

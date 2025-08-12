@@ -1,56 +1,25 @@
-# Build stage
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
-COPY src ./src
-
-# Build TypeScript
-RUN npm run build
-
-# Production stage
+# Use Node.js 18
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
+# Install ALL dependencies (including dev dependencies for building)
+RUN npm install
 
-# Copy built application from builder
-COPY --from=builder /app/dist ./dist
+# Copy all source files
+COPY . .
 
-# Create necessary directories
-RUN mkdir -p uploads data logs && chown -R nodejs:nodejs /app
+# Build the TypeScript code
+RUN npm run build
 
-# Switch to non-root user
-USER nodejs
+# Create data directory for SQLite
+RUN mkdir -p /app/data && chmod 777 /app/data
 
-# Expose port (Fly.io uses 8080 internally)
+# Expose port
 EXPOSE 8080
-
-# Set environment to production
-ENV NODE_ENV=production
-
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
 CMD ["node", "dist/server.js"]
