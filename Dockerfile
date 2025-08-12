@@ -43,8 +43,8 @@ RUN mkdir -p uploads data logs && chown -R nodejs:nodejs /app
 # Switch to non-root user
 USER nodejs
 
-# Expose port
-EXPOSE 4001
+# Expose port (Fly.io uses 8080 internally)
+EXPOSE 8080
 
 # Set environment to production
 ENV NODE_ENV=production
