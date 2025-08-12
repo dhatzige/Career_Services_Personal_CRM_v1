@@ -7,9 +7,23 @@ A comprehensive CRM system for university career services to track student consu
 **Architecture**: Hybrid - SQLite for data, Supabase for auth ONLY  
 **Stack**: React + TypeScript + Vite (Frontend), Express + TypeScript (Backend)
 
+## 🌐 Production Deployments
+- **Frontend**: https://project-88xltxi7d-dimitris-projects-74509e82.vercel.app (Vercel)
+- **Backend API**: https://career-services-personal-crm.fly.dev (Fly.io)
+- **Auth**: https://nhzuliqmjszibcbftjtq.supabase.co (Supabase)
+
 ## 📍 Current Status
 
-### Just Completed (August 12, 2025 - v0.12.0 Security & Authentication Overhaul)
+### Just Completed (August 12, 2025 - Production Deployment)
+
+#### 🚀 Full Stack Deployment
+- ✅ **Frontend deployed to Vercel** - Production app with environment variables
+- ✅ **Backend deployed to Fly.io** - Express API with SQLite database
+- ✅ **CORS configuration fixed** - Added Vercel URLs to allowed origins
+- ✅ **Supabase auth connected** - Direct authentication from frontend
+- ✅ **Environment variables configured** - All secrets properly set
+
+### Previous Session (August 12, 2025 - v0.12.0 Security & Authentication Overhaul)
 
 #### 🔐 Complete Authentication Migration
 - ✅ **REMOVED all legacy SQLite auth** - Now using Supabase exclusively

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Deployed] - 2025-08-12
+
+### 🚀 Production Deployment
+- Deployed frontend to Vercel at https://project-88xltxi7d-dimitris-projects-74509e82.vercel.app
+- Deployed backend API to Fly.io at https://career-services-personal-crm.fly.dev
+- Configured CORS to allow cross-origin requests from Vercel
+- Fixed Supabase authentication configuration with correct URLs
+- Set up environment variables for production environments
+- Created comprehensive deployment documentation
+- Updated README with live demo links
+
 ## [0.12.0] - 2025-08-12 (Security & Authentication Overhaul)
 
 ### 🔐 Security & Authentication

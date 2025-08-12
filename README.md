@@ -2,6 +2,10 @@
 
 A comprehensive web application designed specifically for university career services offices to manage student relationships, track career progress, and streamline counseling operations.
 
+## 🌐 Live Demo
+- **Application**: https://project-88xltxi7d-dimitris-projects-74509e82.vercel.app
+- **API**: https://career-services-personal-crm.fly.dev
+
 ## 🎯 Purpose
 
 This CRM replaces manual tracking methods (like Google Sheets) with a purpose-built solution that:
