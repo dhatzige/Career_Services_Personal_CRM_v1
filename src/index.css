@@ -1,0 +1,59 @@
+/* Import custom animations */
+@import './styles/animations.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fix overscroll background color for dark mode */
+@layer base {
+  html {
+    @apply bg-white dark:bg-gray-900;
+  }
+  
+  body {
+    @apply bg-white dark:bg-gray-900;
+  }
+  
+  /* Ensure the root element also has the correct background */
+  #root {
+    @apply min-h-screen bg-white dark:bg-gray-900;
+  }
+  
+  /* Fix date input calendar icon color in dark mode */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    @apply cursor-pointer;
+    filter: invert(0);
+  }
+  
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.75);
+  }
+  
+  .dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    filter: invert(1) brightness(1);
+  }
+  
+  /* For Firefox - use raw CSS */
+  @media (prefers-color-scheme: dark) {
+    input[type="date"] {
+      color-scheme: dark;
+    }
+  }
+  
+  .dark input[type="date"] {
+    color-scheme: dark;
+  }
+}
+
+/* Utility classes for scrollbar hiding */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+}

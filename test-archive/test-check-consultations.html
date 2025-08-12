@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Consultations in Database</title>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        
+        // Get Supabase credentials from localStorage or environment
+        const supabaseUrl = 'https://oybqjspznvkhnbjmnjtp.supabase.co';
+        const supabaseAnonKey = localStorage.getItem('supabaseAnonKey') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95YnFqc3B6bnZraG5iam1uanRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU1ODk0NjAsImV4cCI6MjA1MTE2NTQ2MH0.5W1MmsaMzd_rHHSskcL01I_kQdqp8vxLO8pPcEuGNyQ';
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        async function checkConsultations() {
+            try {
+                // Get auth token
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    document.getElementById('result').innerHTML = '<p style="color: red;">Not authenticated. Please log in to the app first.</p>';
+                    return;
+                }
+                
+                // Fetch all consultations
+                const { data: consultations, error } = await supabase
+                    .from('consultations')
+                    .select('*')
+                    .order('consultation_date', { ascending: false });
+                
+                if (error) {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                    return;
+                }
+                
+                // Display results
+                let html = `<h2>Found ${consultations?.length || 0} consultations</h2>`;
+                
+                if (consultations && consultations.length > 0) {
+                    html += '<table border="1" style="border-collapse: collapse; margin-top: 10px;">';
+                    html += '<tr><th>Student ID</th><th>Date</th><th>Type</th><th>Status</th><th>Attended</th></tr>';
+                    
+                    consultations.forEach(c => {
+                        html += `<tr>
+                            <td style="padding: 5px;">${c.student_id}</td>
+                            <td style="padding: 5px;">${c.consultation_date || c.scheduled_date || 'No date'}</td>
+                            <td style="padding: 5px;">${c.consultation_type || c.type || 'No type'}</td>
+                            <td style="padding: 5px;">${c.status || 'No status'}</td>
+                            <td style="padding: 5px;">${c.attended !== undefined ? c.attended : 'Not set'}</td>
+                        </tr>`;
+                    });
+                    
+                    html += '</table>';
+                    
+                    // Check for recent consultations (last 7 days)
+                    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                    const recentConsultations = consultations.filter(c => {
+                        const date = new Date(c.consultation_date || c.scheduled_date);
+                        return date >= oneWeekAgo;
+                    });
+                    
+                    html += `<h3 style="margin-top: 20px;">Consultations from the last 7 days: ${recentConsultations.length}</h3>`;
+                }
+                
+                document.getElementById('result').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        window.addEventListener('load', () => {
+            document.getElementById('checkBtn').addEventListener('click', checkConsultations);
+        });
+    </script>
+</head>
+<body>
+    <h1>Check Consultations in Database</h1>
+    <p>Make sure you're logged in to the app first, then click the button below:</p>
+    <button id="checkBtn">Check Consultations</button>
+    <div id="result" style="margin-top: 20px;"></div>
+</body>
+</html>

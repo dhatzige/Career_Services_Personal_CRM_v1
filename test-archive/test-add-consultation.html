@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Add Consultation</title>
+</head>
+<body>
+    <h1>Test Consultation Addition</h1>
+    <p>To test the attendance tags:</p>
+    <ol>
+        <li>Open the app at <a href="http://localhost:5173" target="_blank">http://localhost:5173</a></li>
+        <li>Go to the Students page</li>
+        <li>Click on the test student to open their details</li>
+        <li>Click "Add Consultation"</li>
+        <li>Fill in the consultation details:
+            <ul>
+                <li>Set the date to today or within the past 7 days</li>
+                <li>Select a status (Attended, No Show, Cancelled, or Scheduled)</li>
+                <li>Add any notes</li>
+            </ul>
+        </li>
+        <li>Click "Add Consultation"</li>
+        <li>Close the modal and go back to the students list</li>
+        <li>You should now see the attendance tag on the student card showing:
+            <ul>
+                <li>Green tag with ✓ for "Attended"</li>
+                <li>Red tag with ✕ for "No Show"</li>
+                <li>Yellow tag with ⚠ for "Cancelled"</li>
+                <li>Gray tag with 🕐 for "Scheduled" or upcoming</li>
+            </ul>
+        </li>
+    </ol>
+    
+    <h2>What Changed</h2>
+    <ul>
+        <li>Updated StudentsPage to load consultations from Supabase</li>
+        <li>Fixed the consultation data mapping to handle different field names</li>
+        <li>Added attendance status tags to StudentCard component</li>
+        <li>Updated the consultation form to include a status dropdown</li>
+        <li>Fixed the addConsultationToSupabase function to save attendance status</li>
+    </ul>
+</body>
+</html>

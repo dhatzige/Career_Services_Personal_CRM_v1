@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Consultations Loading</title>
+    <script type="module">
+        // Test if consultations are being loaded
+        async function testConsultationsLoading() {
+            try {
+                // Test API endpoint
+                const response = await fetch('http://localhost:4001/api/consultations', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error('Failed to fetch consultations:', response.status);
+                    document.getElementById('result').innerHTML = `<p style="color: red;">Failed to fetch consultations: ${response.status}</p>`;
+                    return;
+                }
+                
+                const consultations = await response.json();
+                console.log('Consultations:', consultations);
+                
+                // Display results
+                document.getElementById('result').innerHTML = `
+                    <h2>Consultations Loaded: ${consultations.length}</h2>
+                    <pre>${JSON.stringify(consultations, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Wait for page load
+        window.addEventListener('load', () => {
+            document.getElementById('testBtn').addEventListener('click', testConsultationsLoading);
+        });
+    </script>
+</head>
+<body>
+    <h1>Test Consultations Loading</h1>
+    <p>Make sure you're logged in to the app first, then click the button below:</p>
+    <button id="testBtn">Test Consultations API</button>
+    <div id="result"></div>
+</body>
+</html>

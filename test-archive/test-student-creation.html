@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Student Creation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #34d399;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #f87171;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #60a5fa;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Supabase Student Creation</h1>
+        <p>This page will test creating a student directly in Supabase.</p>
+        
+        <button onclick="testStudentCreation()">Create Test Student</button>
+        <button onclick="listStudents()">List All Students</button>
+        <button onclick="deleteTestStudent()">Delete Test Student</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://nhzuliqmjszibcbftjtq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oenVsaXFtanN6aWJjYmZ0anRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NTEwMzcsImV4cCI6MjA2OTQyNzAzN30.OXuqa70BgL3f8Y5Cg6fI6A8yXByV9IG-ge-k6s16ryM';
+        
+        const { createClient } = window.supabase;
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let testStudentId = null;
+        
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        async function testStudentCreation() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            addResult('Testing Supabase student creation...', 'info');
+            
+            try {
+                // Create test student data
+                const testStudent = {
+                    first_name: 'John',
+                    last_name: 'Doe',
+                    email: `john.doe.${Date.now()}@test.com`, // Unique email
+                    phone: '+1 (555) 123-4567',
+                    year_of_study: '2nd year',
+                    program_type: "Bachelor's",
+                    specific_program: 'Computer Science',
+                    major: null,
+                    status: 'Active',
+                    academic_start_date: '2023-09-01'
+                };
+                
+                addResult('Creating student with data:\n' + JSON.stringify(testStudent, null, 2), 'info');
+                
+                // Insert student
+                const { data, error } = await supabase
+                    .from('students')
+                    .insert(testStudent)
+                    .select()
+                    .single();
+                
+                if (error) {
+                    addResult('Error creating student:\n' + JSON.stringify(error, null, 2), 'error');
+                    return;
+                }
+                
+                testStudentId = data.id;
+                addResult('✅ Student created successfully!\n' + JSON.stringify(data, null, 2), 'success');
+                
+                // Verify by fetching the student
+                const { data: verifyData, error: verifyError } = await supabase
+                    .from('students')
+                    .select('*')
+                    .eq('id', data.id)
+                    .single();
+                
+                if (verifyError) {
+                    addResult('Error verifying student:\n' + JSON.stringify(verifyError, null, 2), 'error');
+                } else {
+                    addResult('✅ Student verified in database:\n' + JSON.stringify(verifyData, null, 2), 'success');
+                }
+                
+            } catch (err) {
+                addResult('Unexpected error:\n' + err.message, 'error');
+            }
+        }
+        
+        async function listStudents() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            addResult('Fetching all students from Supabase...', 'info');
+            
+            try {
+                const { data, error, count } = await supabase
+                    .from('students')
+                    .select('*', { count: 'exact' })
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                
+                if (error) {
+                    addResult('Error fetching students:\n' + JSON.stringify(error, null, 2), 'error');
+                    return;
+                }
+                
+                addResult(`✅ Found ${count} total students. Showing latest 10:`, 'success');
+                
+                data.forEach((student, index) => {
+                    addResult(`\nStudent ${index + 1}:
+ID: ${student.id}
+Name: ${student.first_name} ${student.last_name}
+Email: ${student.email}
+Program: ${student.program_type} - ${student.specific_program}
+Year: ${student.year_of_study}
+Status: ${student.status}
+Created: ${new Date(student.created_at).toLocaleString()}`, 'info');
+                });
+                
+            } catch (err) {
+                addResult('Unexpected error:\n' + err.message, 'error');
+            }
+        }
+        
+        async function deleteTestStudent() {
+            if (!testStudentId) {
+                addResult('No test student to delete. Create one first.', 'error');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            addResult(`Deleting test student with ID: ${testStudentId}...`, 'info');
+            
+            try {
+                const { error } = await supabase
+                    .from('students')
+                    .delete()
+                    .eq('id', testStudentId);
+                
+                if (error) {
+                    addResult('Error deleting student:\n' + JSON.stringify(error, null, 2), 'error');
+                    return;
+                }
+                
+                addResult('✅ Test student deleted successfully!', 'success');
+                testStudentId = null;
+                
+            } catch (err) {
+                addResult('Unexpected error:\n' + err.message, 'error');
+            }
+        }
+        
+        // Test connection on load
+        window.onload = async () => {
+            addResult('Testing Supabase connection...', 'info');
+            
+            try {
+                const { error } = await supabase.from('students').select('count').limit(1);
+                
+                if (error) {
+                    addResult('❌ Supabase connection failed:\n' + JSON.stringify(error, null, 2), 'error');
+                } else {
+                    addResult('✅ Supabase connection successful!', 'success');
+                }
+            } catch (err) {
+                addResult('❌ Connection error:\n' + err.message, 'error');
+            }
+        };
+    </script>
+</body>
+</html>

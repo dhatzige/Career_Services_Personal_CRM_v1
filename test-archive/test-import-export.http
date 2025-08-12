@@ -1,0 +1,54 @@
+### Test Import/Export Functionality
+### This file can be used with REST Client extensions in VS Code or similar tools
+
+### Variables
+@baseUrl = http://localhost:4001/api
+@token = YOUR_AUTH_TOKEN_HERE
+
+### 1. Export Students as CSV
+GET {{baseUrl}}/reports/export?type=students&format=csv
+Authorization: Bearer {{token}}
+
+### 2. Export Consultations as CSV
+GET {{baseUrl}}/reports/export?type=consultations&format=csv
+Authorization: Bearer {{token}}
+
+### 3. Export Notes as CSV
+GET {{baseUrl}}/reports/export?type=notes&format=csv
+Authorization: Bearer {{token}}
+
+### 4. Export Students as JSON
+GET {{baseUrl}}/reports/export?type=students&format=json
+Authorization: Bearer {{token}}
+
+### 5. Import Students from CSV
+POST {{baseUrl}}/reports/import
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "students",
+  "data": [
+    {
+      "First Name": "Test",
+      "Last Name": "Student",
+      "Email": "test.student@university.edu",
+      "Phone": "+1 (555) 111-2222",
+      "Current Year": "2nd year",
+      "Program Type": "Bachelor's",
+      "Degree Program": "Computer Science",
+      "Status": "Active"
+    },
+    {
+      "First Name": "Jane",
+      "Last Name": "Doe",
+      "Email": "jane.doe@university.edu",
+      "Phone": "",
+      "Current Year": "1st year",
+      "Program Type": "Master's",
+      "Degree Program": "MBA",
+      "Major/Specialization": "Finance",
+      "Status": "Active"
+    }
+  ]
+}

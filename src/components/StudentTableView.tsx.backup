@@ -1,0 +1,844 @@
+import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
+import { Student } from '../types/student';
+import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { api } from '../services/apiClient';
+import { toast } from './ui/toast';
+
+interface StudentTableViewProps {
+  students: Student[];
+  currentPage: number;
+  totalPages: number;
+  totalStudents: number;
+  onPageChange: (page: number) => void;
+  onStudentClick: (student: Student, tab?: 'timeline' | 'info' | 'notes') => void;
+  itemsPerPage?: number;
+  onStudentUpdated?: () => void;
+  onStudentDelete?: (student: Student) => void;
+}
+
+const StudentTableView: React.FC<StudentTableViewProps> = ({
+  students,
+  currentPage,
+  totalPages,
+  totalStudents,
+  onPageChange,
+  onStudentClick,
+  itemsPerPage = 25,
+  onStudentUpdated,
+  onStudentDelete
+}) => {
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [openDropdownType, setOpenDropdownType] = useState<'attendance' | 'note' | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [hoveredDateId, setHoveredDateId] = useState<string | null>(null);
+  const [editingDateId, setEditingDateId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const noteDropdownRef = useRef<HTMLDivElement>(null);
+  const attendanceDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      
+      // Check if click is outside note dropdown
+      if (openDropdownType === 'note' && noteDropdownRef.current && !noteDropdownRef.current.contains(target)) {
+        // Also check if the click is not on the button that opens the dropdown
+        const buttonId = openDropdownId ? `note-btn-${openDropdownId.replace('note-', '')}` : null;
+        const button = buttonId ? document.getElementById(buttonId) : null;
+        if (!button || !button.contains(target)) {
+          setOpenDropdownId(null);
+          setOpenDropdownType(null);
+        }
+      }
+      
+      // Check if click is outside attendance dropdown
+      if (openDropdownType === 'attendance' && attendanceDropdownRef.current && !attendanceDropdownRef.current.contains(target)) {
+        const buttonId = openDropdownId ? `attendance-btn-${openDropdownId.replace('attendance-', '')}` : null;
+        const button = buttonId ? document.getElementById(buttonId) : null;
+        if (!button || !button.contains(target)) {
+          setOpenDropdownId(null);
+          setOpenDropdownType(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdownId, openDropdownType]);
+  // Get attendance status for the most recent consultation
+  const getAttendanceStatus = (student: Student) => {
+    if (!student.consultations || student.consultations.length === 0) {
+      return null;
+    }
+
+    // Sort consultations by date (most recent first)
+    const sortedConsultations = [...student.consultations].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    const recentConsultation = sortedConsultations[0];
+    const consultationDate = new Date(recentConsultation.date);
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Only show attendance for consultations within the past week
+    if (consultationDate <= now && consultationDate >= oneWeekAgo) {
+      return recentConsultation.status;
+    }
+
+    return null;
+  };
+
+  const getAttendanceIcon = (status: string | null) => {
+    if (!status) return null;
+
+    switch (status) {
+      case 'attended':
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'no-show':
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'scheduled':
+        return <Clock className="w-4 h-4 text-blue-600" />;
+      case 'rescheduled':
+        return <AlertCircle className="w-4 h-4 text-orange-600" />;
+      default:
+        return null;
+    }
+  };
+
+  const getAttendanceLabel = (status: string | null) => {
+    if (!status) return '';
+
+    switch (status) {
+      case 'attended':
+        return 'Attended';
+      case 'no-show':
+        return 'No Show';
+      case 'scheduled':
+        return 'Scheduled';
+      case 'rescheduled':
+        return 'Rescheduled';
+      default:
+        return '';
+    }
+  };
+
+  const getLastConsultationDate = (student: Student) => {
+    if (!student.consultations || student.consultations.length === 0) {
+      return 'No consultations';
+    }
+
+    // Find the most recent consultation that was attended
+    const attendedConsultations = student.consultations
+      .filter(c => c.status === 'attended')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    if (attendedConsultations.length === 0) {
+      return 'No consultations';
+    }
+
+    return format(new Date(attendedConsultations[0].date), 'MMM d, yyyy');
+  };
+
+  const getQuickNote = (student: Student) => {
+    if (!student.notes || student.notes.length === 0) {
+      return '-';
+    }
+
+    // Get the most recent note
+    const sortedNotes = [...student.notes].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    const recentNote = sortedNotes[0].content;
+    // Truncate to 50 characters
+    return recentNote.length > 50 ? recentNote.substring(0, 50) + '...' : recentNote;
+  };
+
+  // Get the most recent consultation
+  const getMostRecentConsultation = (student: Student) => {
+    if (!student.consultations || student.consultations.length === 0) {
+      return null;
+    }
+
+    const sortedConsultations = [...student.consultations].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    return sortedConsultations[0];
+  };
+
+  // Update attendance status
+  const updateAttendanceStatus = async (student: Student, newStatus: string) => {
+    const consultation = getMostRecentConsultation(student);
+    if (!consultation) {
+      // If no consultation exists, create a new one with today's date
+      setUpdatingId(student.id);
+      try {
+        const consultationDate = new Date().toISOString();
+        await api.consultations.create(student.id, {
+          type: 'General',
+          date: consultationDate,
+          attended: newStatus === 'attended',
+          duration: 30,
+          notes: 'Quick consultation'
+        });
+
+        if (onStudentUpdated) {
+          console.log('Calling onStudentUpdated after creating consultation');
+          await onStudentUpdated();
+        }
+      } catch (error) {
+        console.error('Error creating consultation:', error);
+        toast.error('Failed to update attendance status');
+      } finally {
+        setUpdatingId(null);
+        setOpenDropdownId(null);
+        setOpenDropdownType(null);
+      }
+      return;
+    }
+
+    setUpdatingId(consultation.id);
+    
+    try {
+      await api.consultations.update(consultation.id, {
+        status: newStatus,
+        attended: newStatus === 'attended'
+      });
+
+      // Call the callback to refresh data
+      if (onStudentUpdated) {
+        onStudentUpdated();
+      }
+    } catch (error) {
+      console.error('Error updating attendance status:', error);
+    } finally {
+      setUpdatingId(null);
+      setOpenDropdownId(null);
+      setOpenDropdownType(null);
+    }
+  };
+
+  const attendanceOptions = [
+    { value: 'attended', label: 'Attended', icon: CheckCircle, color: 'text-green-600' },
+    { value: 'no-show', label: 'No Show', icon: XCircle, color: 'text-red-600' },
+    { value: 'scheduled', label: 'Scheduled', icon: Clock, color: 'text-blue-600' },
+    { value: 'rescheduled', label: 'Rescheduled', icon: AlertCircle, color: 'text-orange-600' }
+  ];
+
+  const noteTypes = [
+    { value: 'clear', label: 'Clear Tag', color: 'bg-gray-400' },
+    { value: 'General', label: 'General Note', color: 'bg-blue-500' },
+    { value: 'Academic', label: 'Academic', color: 'bg-purple-500' },
+    { value: 'Personal', label: 'Personal', color: 'bg-indigo-500' },
+    { value: 'Follow-up', label: 'Follow-up', color: 'bg-cyan-500' },
+    { value: 'Alert', label: 'Alert', color: 'bg-red-500' },
+    { value: 'Career Planning', label: 'Career Planning', color: 'bg-yellow-500' },
+    { value: 'Interview Prep', label: 'Interview Prep', color: 'bg-orange-500' }
+  ];
+
+  // Add or update a quick note
+  const updateQuickNote = async (student: Student, noteValue: string) => {
+    // Don't show loading for clear action
+    if (noteValue !== 'clear') {
+      setUpdatingId(student.id);
+    }
+    
+    try {
+      // Handle clearing the tag
+      if (noteValue === 'clear') {
+        try {
+          console.log('Clearing quick note tag for student:', student.id);
+          
+          // Call API to clear the quick note
+          await api.students.update(student.id, { quick_note: null });
+          toast.success('Tag cleared');
+            
+          // Close dropdown
+          setOpenDropdownId(null);
+          setOpenDropdownType(null);
+          
+          // Refresh data to show cleared state
+          if (onStudentUpdated) {
+            await onStudentUpdated();
+          }
+        } catch (error) {
+          console.error('Error clearing tag:', error);
+          toast.error('Failed to clear tag');
+        }
+        return;
+      }
+
+      // Find the note type to get its label
+      const noteType = noteTypes.find(n => n.value === noteValue);
+      if (!noteType) return;
+
+      console.log('Creating note:', { studentId: student.id, type: noteValue, label: noteType.label });
+
+      // Use API to create note
+      await api.notes.create(student.id, { 
+        type: noteValue, 
+        content: noteType.label,
+        isPrivate: false 
+      });
+      console.log('Note created successfully');
+      
+      // Show success message
+      toast.success(`Tag set to "${noteType.label}"`);
+      
+      // Add a small delay to ensure database has processed the insert
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Close dropdown first
+      setOpenDropdownId(null);
+      setOpenDropdownType(null);
+      
+      // Then refresh data
+      if (onStudentUpdated) {
+        console.log('Calling onStudentUpdated to refresh data');
+        await onStudentUpdated();
+      }
+    } catch (error) {
+      console.error('Error updating quick note:', error);
+      // Show user-friendly error message
+      toast.error('Failed to update tag. Please try again.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // Get the note type from the most recent note
+  const getQuickNoteType = (student: Student) => {
+    if (!student.notes || student.notes.length === 0) {
+      return null;
+    }
+
+    // Get the most recent note
+    const sortedNotes = [...student.notes].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    const recentNote = sortedNotes[0];
+    
+    // First check the note type field if it exists
+    if (recentNote.type) {
+      const matchedByType = noteTypes.find(type => type.value === recentNote.type);
+      if (matchedByType) return matchedByType.value;
+    }
+    
+    // Then check if the note content matches any note type label
+    const matchedType = noteTypes.find(type => 
+      recentNote.content === type.label ||
+      recentNote.content === type.value ||
+      recentNote.content.toLowerCase() === type.value.toLowerCase() ||
+      recentNote.content.toLowerCase() === type.label.toLowerCase()
+    );
+    
+    return matchedType ? matchedType.value : null;
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div className="overflow-x-auto" style={{ position: 'static' }}>
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50 dark:bg-gray-900">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Full Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Email
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Studies
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Year
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Quick Note
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Notes
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Last Consultation
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Attendance
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {students.map((student) => {
+              const attendanceStatus = getAttendanceStatus(student);
+              return (
+                <tr
+                  key={student.id}
+                  onClick={() => onStudentClick(student)}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {student.firstName} {student.lastName}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{student.email}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 dark:text-gray-100">{student.specificProgram}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{student.major}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                      {student.yearOfStudy}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative">
+                      <button
+                        id={`note-btn-${student.id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          console.log('Quick note clicked for student:', student.id);
+                          if (openDropdownId === `note-${student.id}`) {
+                            setOpenDropdownId(null);
+                            setOpenDropdownType(null);
+                          } else {
+                            setOpenDropdownId(`note-${student.id}`);
+                            setOpenDropdownType('note');
+                          }
+                        }}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all duration-150 min-w-[120px] group focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
+                          openDropdownId === `note-${student.id}` 
+                            ? 'border-gray-300 bg-gray-50' 
+                            : 'border-transparent hover:border-gray-300 hover:bg-gray-50 active:bg-gray-100'
+                        }`}
+                        disabled={updatingId === student.id}
+                      >
+                        {updatingId === student.id ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Updating...</span>
+                          </>
+                        ) : (
+                          <>
+                            {(() => {
+                              const noteType = getQuickNoteType(student);
+                              const matchedType = noteTypes.find(t => t.value === noteType);
+                              if (matchedType) {
+                                return (
+                                  <>
+                                    <span className={`w-2 h-2 rounded-full ${matchedType.color}`} />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{matchedType.label}</span>
+                                  </>
+                                );
+                              }
+                              return <span className="text-sm text-gray-400 dark:text-gray-500">Set note type</span>;
+                            })()}
+                            <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500 ml-auto group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors" />
+                          </>
+                        )}
+                      </button>
+                      
+                      {openDropdownId === `note-${student.id}` && openDropdownType === 'note' && ReactDOM.createPortal(
+                        <div 
+                          ref={noteDropdownRef}
+                          className="fixed z-[100] w-56 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-300 dark:border-gray-600"
+                          style={{
+                            top: (() => {
+                              const button = document.getElementById(`note-btn-${student.id}`);
+                              if (button) {
+                                const rect = button.getBoundingClientRect();
+                                return rect.bottom + 4;
+                              }
+                              return 0;
+                            })(),
+                            left: (() => {
+                              const button = document.getElementById(`note-btn-${student.id}`);
+                              if (button) {
+                                const rect = button.getBoundingClientRect();
+                                return rect.left;
+                              }
+                              return 0;
+                            })()
+                          }}
+                        >
+                          <div className="py-1 max-h-64 overflow-y-auto">
+                            {noteTypes.map((noteType) => (
+                              <button
+                                key={noteType.value}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('Note type clicked:', noteType.value, noteType.label);
+                                  updateQuickNote(student, noteType.value);
+                                }}
+                                className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-100 active:bg-gray-200 transition-colors duration-150"
+                              >
+                                {noteType.value === 'clear' ? (
+                                  <X className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                                ) : (
+                                  <span className={`w-2.5 h-2.5 rounded-full ${noteType.color} flex-shrink-0`} />
+                                )}
+                                <span className={`text-sm font-medium ${noteType.value === 'clear' ? 'text-gray-600 dark:text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                                  {noteType.label}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>,
+                        document.body
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      {student.notes && student.notes.length > 0 ? (
+                        student.notes.slice(0, 3).map((note, index) => (
+                          <button
+                            key={note.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onStudentClick(student, 'notes');
+                            }}
+                            className="inline-flex items-center justify-center w-7 h-7 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-full hover:bg-blue-100 hover:border-blue-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                            title={`View note ${index + 1}`}
+                          >
+                            {index + 1}
+                          </button>
+                        ))
+                      ) : (
+                        <span className="text-sm text-gray-400 dark:text-gray-500">No notes</span>
+                      )}
+                      {student.notes && student.notes.length > 3 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onStudentClick(student);
+                          }}
+                          className="inline-flex items-center justify-center px-2 h-7 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:ring-offset-1"
+                          title={`View all ${student.notes.length} notes`}
+                        >
+                          +{student.notes.length - 3}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap"
+                      onMouseEnter={() => setHoveredDateId(student.id)}
+                      onMouseLeave={() => setHoveredDateId(null)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {editingDateId === student.id ? (
+                        <input
+                          type="date"
+                          defaultValue={(() => {
+                            const attendedConsultations = student.consultations
+                              ?.filter(c => c.status === 'attended')
+                              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                            if (attendedConsultations && attendedConsultations.length > 0) {
+                              const dateStr = attendedConsultations[0].date;
+                              if (dateStr) {
+                                try {
+                                  return new Date(dateStr).toISOString().split('T')[0];
+                                } catch (e) {
+                                  console.error('Invalid date in consultation:', dateStr);
+                                }
+                              }
+                            }
+                            return new Date().toISOString().split('T')[0];
+                          })()}
+                          onChange={async (e) => {
+                            const newDate = e.target.value;
+                            if (!newDate) {
+                              setEditingDateId(null);
+                              return;
+                            }
+                            
+                            const attendedConsultations = student.consultations
+                              ?.filter(c => c.status === 'attended')
+                              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                            
+                            if (attendedConsultations && attendedConsultations.length > 0) {
+                              const consultationToUpdate = attendedConsultations[0];
+                              try {
+                                // Create date at noon to avoid timezone issues
+                                const dateObj = new Date(newDate + 'T12:00:00');
+                                if (isNaN(dateObj.getTime())) {
+                                  console.error('Invalid date:', newDate);
+                                  return;
+                                }
+                                
+                                const { error } = await supabase
+                                  .from('consultations')
+                                  .update({ 
+                                    consultation_date: dateObj.toISOString(),
+                                    scheduled_date: dateObj.toISOString()
+                                  })
+                                  .eq('id', consultationToUpdate.id);
+
+                                if (error) throw error;
+
+                                if (onStudentUpdated) {
+                                  onStudentUpdated();
+                                }
+                                setEditingDateId(null);
+                              } catch (error) {
+                                console.error('Error updating consultation date:', error);
+                                setEditingDateId(null);
+                              }
+                            }
+                          }}
+                          onBlur={() => setEditingDateId(null)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-2 py-0.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                        />
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (getLastConsultationDate(student) !== 'No consultations') {
+                                setEditingDateId(student.id);
+                              }
+                            }}
+                            className="text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                          >
+                            {getLastConsultationDate(student)}
+                          </button>
+                          {hoveredDateId === student.id && getLastConsultationDate(student) !== 'No consultations' && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                // Find the most recent attended consultation and change its status
+                                const attendedConsultations = student.consultations
+                                  ?.filter(c => c.status === 'attended')
+                                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                                
+                                if (attendedConsultations && attendedConsultations.length > 0) {
+                                  const consultationToUpdate = attendedConsultations[0];
+                                  try {
+                                    const { error } = await supabase
+                                      .from('consultations')
+                                      .update({ 
+                                        status: 'no-show',
+                                        attended: false
+                                      })
+                                      .eq('id', consultationToUpdate.id);
+
+                                    if (error) throw error;
+
+                                    if (onStudentUpdated) {
+                                      onStudentUpdated();
+                                    }
+                                  } catch (error) {
+                                    console.error('Error updating consultation:', error);
+                                  }
+                                }
+                              }}
+                              className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all duration-150"
+                              title="Remove date"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative">
+                        <button
+                          id={`attendance-btn-${student.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openDropdownId === `attendance-${student.id}`) {
+                              setOpenDropdownId(null);
+                              setOpenDropdownType(null);
+                            } else {
+                              setOpenDropdownId(`attendance-${student.id}`);
+                              setOpenDropdownType('attendance');
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all duration-150 min-w-[140px] group focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
+                            openDropdownId === `attendance-${student.id}` 
+                              ? 'border-gray-300 bg-gray-50' 
+                              : 'border-transparent hover:border-gray-300 hover:bg-gray-50 active:bg-gray-100'
+                          }`}
+                          disabled={updatingId === student.id || updatingId === getMostRecentConsultation(student)?.id}
+                        >
+                          {attendanceStatus && getAttendanceIcon(attendanceStatus)}
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {attendanceStatus ? getAttendanceLabel(attendanceStatus) : 'No consultations'}
+                          </span>
+                          <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500 ml-auto group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors" />
+                        </button>
+                        
+                        {openDropdownId === `attendance-${student.id}` && openDropdownType === 'attendance' && ReactDOM.createPortal(
+                          <div 
+                            ref={attendanceDropdownRef}
+                            className="fixed z-[100] w-48 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-300 dark:border-gray-600"
+                            style={{
+                              top: (() => {
+                                const button = document.getElementById(`attendance-btn-${student.id}`);
+                                if (button) {
+                                  const rect = button.getBoundingClientRect();
+                                  return rect.bottom + 4;
+                                }
+                                return 0;
+                              })(),
+                              left: (() => {
+                                const button = document.getElementById(`attendance-btn-${student.id}`);
+                                if (button) {
+                                  const rect = button.getBoundingClientRect();
+                                  return rect.right - 192; // 192px = 48 * 4 (w-48 in tailwind)
+                                }
+                                return 0;
+                              })()
+                            }}
+                          >
+                            <div className="py-1">
+                              {attendanceOptions.map((option) => {
+                                const Icon = option.icon;
+                                return (
+                                  <button
+                                    key={option.value}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateAttendanceStatus(student, option.value);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-100 active:bg-gray-200 transition-colors duration-150"
+                                  >
+                                    <Icon className={`w-4 h-4 ${option.color}`} />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{option.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>,
+                          document.body
+                        )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const studentName = student.firstName && student.lastName 
+                          ? `${student.firstName} ${student.lastName}`
+                          : student.email || 'this student';
+                        if (onStudentDelete && confirm(`Are you sure you want to delete ${studentName}?`)) {
+                          onStudentDelete(student);
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                      title="Delete student"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+        <div className="flex-1 flex justify-between sm:hidden">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Showing{' '}
+              <span className="font-medium">{totalStudents > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> to{' '}
+              <span className="font-medium">
+                {totalStudents > 0 ? Math.min(currentPage * itemsPerPage, totalStudents) : 0}
+              </span>{' '}
+              of <span className="font-medium">{totalStudents || 0}</span> results
+            </p>
+          </div>
+          <div>
+            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="sr-only">Previous</span>
+                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+              </button>
+              
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange(pageNum)}
+                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                      currentPage === pageNum
+                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="sr-only">Next</span>
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default StudentTableView;

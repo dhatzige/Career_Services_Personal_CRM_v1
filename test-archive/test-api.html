@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Endpoints</title>
+</head>
+<body>
+    <h1>Testing Career API Endpoints</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testEndpoints() {
+            const endpoints = [
+                '/api/career/applications/all',
+                '/api/career/workshops/all',
+                '/api/career/mock-interviews/all',
+                '/api/career/documents/all',
+                '/api/career/employer-connections/all',
+                '/api/calendar/meetings/upcoming'
+            ];
+            
+            const results = document.getElementById('results');
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`http://localhost:4001${endpoint}`);
+                    const data = await response.json();
+                    
+                    results.innerHTML += `
+                        <div style="margin: 10px; padding: 10px; border: 1px solid ${response.ok ? 'green' : 'red'}">
+                            <strong>${endpoint}</strong><br>
+                            Status: ${response.status}<br>
+                            Response: <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } catch (error) {
+                    results.innerHTML += `
+                        <div style="margin: 10px; padding: 10px; border: 1px solid red">
+                            <strong>${endpoint}</strong><br>
+                            Error: ${error.message}
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        testEndpoints();
+    </script>
+</body>
+</html>
