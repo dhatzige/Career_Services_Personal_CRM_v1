@@ -1,24 +1,24 @@
-# Personal CRM Backend
+# Career Services CRM Backend
 
-A robust Node.js + Express backend with PostgreSQL for the Personal CRM application.
+A robust Node.js + Express backend with **SQLite** database for the Career Services CRM application.
 
 ## 🚀 Features
 
 - **RESTful API** with comprehensive endpoints for students, notes, consultations, and more
-- **PostgreSQL Database** with proper relationships and indexes
-- **JWT Authentication** with secure user management
+- **SQLite Database** - Lightweight, file-based database (no server setup needed!)
+- **Supabase Authentication** - Secure, invite-only user management
 - **Input Validation** using express-validator
-- **AI Integration** ready for Claude API integration
+- **AI Integration** with Claude API for insights and reports
 - **TypeScript** for type safety and better development experience
 - **Security** with helmet, CORS, and rate limiting
 - **Comprehensive Error Handling** with detailed error responses
-- **Database Migrations** with automated setup scripts
+- **Sentry Integration** for error monitoring
 
 ## 📋 Prerequisites
 
 - Node.js (v16 or higher)
-- PostgreSQL (v12 or higher)
 - npm or yarn
+- Supabase account (for authentication)
 
 ## 🔧 Installation
 
@@ -28,49 +28,37 @@ A robust Node.js + Express backend with PostgreSQL for the Personal CRM applicat
    ```
 
 2. **Set up environment variables:**
-   Create a `.env` file in the backend directory:
+   Create a `.env` file in the backend directory (copy from `.env.example`):
    ```bash
-   # Database Configuration
-   DATABASE_URL=postgresql://username:password@localhost:5432/personal_crm
-   DB_HOST=localhost
-   DB_PORT=5432
-   DB_NAME=personal_crm
-   DB_USER=crm_user
-   DB_PASSWORD=your_secure_password_here
+   # Supabase Configuration (for Authentication ONLY)
+   SUPABASE_URL=your-supabase-url
+   SUPABASE_ANON_KEY=your-supabase-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
    # Server Configuration
-   PORT=3001
+   PORT=4001
    NODE_ENV=development
-
-   # Authentication
-   JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
-   JWT_EXPIRES_IN=24h
-   BCRYPT_ROUNDS=12
-
-   # CORS Configuration
    FRONTEND_URL=http://localhost:5173
 
-   # Claude AI API (for AI reports)
-   CLAUDE_API_KEY=your_claude_api_key_here
+   # Security
+   SESSION_SECRET=generate-a-strong-random-string-here
+   CSRF_SECRET=generate-another-strong-random-string-here
+   JWT_SECRET=generate-a-third-strong-random-string-here
 
-   # Rate Limiting
-   RATE_LIMIT_WINDOW_MS=900000
-   RATE_LIMIT_MAX_REQUESTS=100
+   # API Keys
+   CLAUDE_API_KEY=your-claude-api-key
+   RESEND_API_KEY=your-resend-api-key
+   SENTRY_DSN=your-sentry-dsn
+
+   # Master Account (for initial setup)
+   MASTER_EMAIL=your-email@example.com
+   MASTER_PASSWORD=your-secure-password
    ```
 
-3. **Set up PostgreSQL database:**
-   ```bash
-   # Create database and user
-   psql -U postgres
-   CREATE DATABASE personal_crm;
-   CREATE USER crm_user WITH PASSWORD 'your_secure_password_here';
-   GRANT ALL PRIVILEGES ON DATABASE personal_crm TO crm_user;
-   ```
-
-4. **Run database migrations:**
-   ```bash
-   npm run db:migrate migrate
-   ```
+3. **Database is automatic!**
+   - SQLite database is created automatically when you first run the server
+   - Located at: `data/career_services.db`
+   - No database server needed - it's just a file!
 
 ## 🏃‍♂️ Running the Server
 
@@ -78,6 +66,7 @@ A robust Node.js + Express backend with PostgreSQL for the Personal CRM applicat
 ```bash
 npm run dev
 ```
+Server runs on http://localhost:4001
 
 ### Production
 ```bash
@@ -85,197 +74,112 @@ npm run build
 npm start
 ```
 
-## 🗄️ Database Management
+## 🗄️ Database Information
 
-### Available Commands
-```bash
-# Run migrations
-npm run db:migrate migrate
+### What is SQLite?
+- **SQLite** is a lightweight, file-based database
+- No separate database server needed (unlike PostgreSQL or MySQL)
+- Perfect for small to medium applications
+- Your data is stored in a single file: `data/career_services.db`
 
-# Check database status
-npm run db:migrate check
+### Why SQLite + Supabase?
+- **SQLite** stores all your CRM data (students, notes, consultations)
+- **Supabase** handles authentication only (login system)
+- This hybrid approach gives you the best of both worlds:
+  - Simple local data storage with SQLite
+  - Professional authentication with Supabase
 
-# Create indexes
-npm run db:migrate index
+### Database Tables
+- **students** - Student information and academic details
+- **notes** - Student notes with various types
+- **consultations** - Meeting records with attendance tracking
+- **follow_up_reminders** - Tasks and reminders
+- **activity_log** - System activity tracking
+- **users** - User profiles (auth handled by Supabase)
 
-# Drop all tables
-npm run db:migrate drop
-
-# Reset database (drop and recreate)
-npm run db:migrate reset
-```
-
-## 🔌 API Endpoints
-
-### Authentication
-- `GET /api/auth/status` - Check system configuration
-- `POST /api/auth/setup` - Initial system setup
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Get current user
-- `POST /api/auth/change-password` - Change password
-- `PUT /api/auth/profile` - Update profile
-- `POST /api/auth/logout` - Logout
+## 🔌 Main API Endpoints
 
 ### Students
 - `GET /api/students` - Get all students
-- `POST /api/students/search` - Search students with filters
-- `GET /api/students/:id` - Get student by ID
 - `POST /api/students` - Create new student
 - `PUT /api/students/:id` - Update student
 - `DELETE /api/students/:id` - Delete student
-- `GET /api/students/stats/overview` - Get student statistics
-- `POST /api/students/bulk` - Bulk operations
-
-### Notes
-- `GET /api/notes/student/:studentId` - Get notes for student
-- `GET /api/notes/:id` - Get note by ID
-- `POST /api/notes/student/:studentId` - Create note for student
-- `PUT /api/notes/:id` - Update note
-- `DELETE /api/notes/:id` - Delete note
-- `GET /api/notes/stats/overview` - Get notes statistics
 
 ### Consultations
-- `GET /api/consultations/student/:studentId` - Get consultations for student
-- `GET /api/consultations/:id` - Get consultation by ID
-- `POST /api/consultations/student/:studentId` - Create consultation for student
+- `GET /api/consultations/student/:studentId` - Get student's consultations
+- `POST /api/consultations/student/:studentId` - Schedule consultation
 - `PUT /api/consultations/:id` - Update consultation
-- `DELETE /api/consultations/:id` - Delete consultation
-- `GET /api/consultations/date-range/:startDate/:endDate` - Get consultations in date range
-- `GET /api/consultations/stats/overview` - Get consultation statistics
+
+### Notes
+- `GET /api/notes/student/:studentId` - Get student's notes
+- `POST /api/notes/student/:studentId` - Add note
+- `PUT /api/notes/:id` - Update note
 
 ### Dashboard
-- `GET /api/dashboard/stats` - Get comprehensive dashboard statistics
-- `GET /api/dashboard/activity` - Get recent activity feed
-- `GET /api/dashboard/metrics` - Get performance metrics
-- `GET /api/dashboard/upcoming` - Get upcoming consultations
-- `GET /api/dashboard/health` - System health check
+- `GET /api/dashboard/stats` - Get dashboard statistics
+- `GET /api/dashboard/activity` - Get recent activity
 
-### AI Reports
-- `POST /api/ai/report` - Generate AI report
-- `GET /api/ai/insights/student/:studentId` - Get AI insights for student
-- `GET /api/ai/recommendations` - Get AI recommendations
-
-### Health Check
-- `GET /health` - Server health check (no auth required)
+### Team Management (Master User Only)
+- `GET /api/team/members` - List team members
+- `POST /api/team/invite` - Send invitation
+- `DELETE /api/team/member/:id` - Remove team member
 
 ## 🛡️ Security Features
 
-- **JWT Authentication** with secure token generation
-- **Password Hashing** using bcrypt with salt
-- **Rate Limiting** to prevent abuse
-- **Input Validation** on all endpoints
-- **CORS Protection** with configurable origins
-- **SQL Injection Prevention** using parameterized queries
-- **Security Headers** with helmet middleware
+- **Invite-only registration** - No public signups
+- **Master user control** - One admin controls all invitations
+- **JWT Authentication** with Supabase
+- **Rate limiting** to prevent abuse
+- **Input validation** on all endpoints
+- **CORS protection** 
+- **SQL injection prevention** 
 
-## 📊 Database Schema
-
-### Core Tables
-- **users** - User authentication and profile data
-- **students** - Student information and academic details
-- **notes** - Student notes with type categorization
-- **consultations** - Consultation records with attendance tracking
-- **follow_up_reminders** - Follow-up reminders and tasks
-- **activity_logs** - System activity and audit logs
-
-### Relationships
-- Students → Notes (one-to-many)
-- Students → Consultations (one-to-many)
-- Students → Follow-up Reminders (one-to-many)
-- All tables → Activity Logs (audit trail)
-
-## 🔧 Development
-
-### Project Structure
+## 📁 Project Structure
 ```
 backend/
 ├── src/
 │   ├── controllers/     # Route handlers
-│   ├── database/        # Database connection and migrations
-│   ├── middleware/      # Express middleware
+│   ├── database/        # SQLite setup and migrations
+│   ├── middleware/      # Auth, security, validation
 │   ├── models/          # Database models
 │   ├── routes/          # API routes
-│   ├── types/           # TypeScript type definitions
+│   ├── services/        # External services (Claude, Email)
+│   ├── types/           # TypeScript definitions
 │   ├── utils/           # Utility functions
 │   └── server.ts        # Main server file
-├── dist/               # Compiled JavaScript
+├── data/
+│   └── career_services.db  # SQLite database file
+├── dist/                # Compiled JavaScript
 ├── package.json
-├── tsconfig.json
 └── README.md
 ```
 
-### Code Quality
-- **TypeScript** for type safety
-- **ESLint** for code linting
-- **Prettier** for code formatting
-- **Error Handling** with comprehensive error responses
-- **Logging** with structured console output
+## 🚀 Deployment Notes
 
-## 🚀 Deployment
+1. **Database Backup**: Always backup `data/career_services.db` before updates
+2. **Environment Variables**: Never commit `.env` file
+3. **Master Account**: First user registered becomes the master admin
+4. **Supabase Setup**: Required for authentication to work
 
-### Environment Variables
-Ensure all required environment variables are set in production:
-- Database credentials
-- JWT secret (use a strong, random key)
-- CORS origin (your frontend URL)
-- Claude API key (for AI features)
+## 📊 Key Features for Non-Developers
 
-### Database Setup
-1. Create PostgreSQL database
-2. Set up database user with appropriate permissions
-3. Run migrations: `npm run db:migrate migrate`
-4. Create indexes: `npm run db:migrate index`
-
-### Security Checklist
-- [ ] Change default JWT secret
-- [ ] Use strong database passwords
-- [ ] Enable HTTPS in production
-- [ ] Set up proper CORS origins
-- [ ] Configure rate limiting
-- [ ] Set up monitoring and logging
-
-## 📝 API Response Format
-
-All API responses follow this consistent format:
-```json
-{
-  "success": true,
-  "data": { /* response data */ },
-  "message": "Operation completed successfully"
-}
-```
-
-Error responses:
-```json
-{
-  "success": false,
-  "message": "Error description",
-  "error": { /* error details */ }
-}
-```
+- **No complex database setup** - SQLite just works!
+- **All data stored locally** in one file
+- **Easy backup** - just copy the database file
+- **Supabase handles passwords** securely
+- **Professional error tracking** with Sentry
 
 ## 🔍 Monitoring
 
-### Health Checks
-- `GET /health` - Basic server health
-- `GET /api/dashboard/health` - Detailed system health with metrics
-
-### Logging
-- Request logging in development
-- Error logging with stack traces
-- Database query logging (configurable)
+- **Sentry Integration** for error tracking
+- Check errors at: https://de.sentry.io (organization: act-l6)
 
 ## 📞 Support
 
-For issues or questions, please refer to the project documentation or create an issue in the repository.
+For issues or questions:
+1. Check the `docs/` folder for guides
+2. Review `TROUBLESHOOTING.md`
+3. Create an issue on GitHub
 
-## 🏗️ Architecture
-
-The backend follows a clean architecture pattern:
-- **Routes** handle HTTP requests and responses
-- **Models** manage database operations
-- **Middleware** handles cross-cutting concerns
-- **Controllers** contain business logic
-- **Services** handle external integrations (AI, email, etc.)
-
-This architecture ensures maintainability, testability, and scalability. 
+---
+*Built with Node.js, Express, TypeScript, SQLite, and Supabase*
