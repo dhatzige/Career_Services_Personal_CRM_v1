@@ -100,23 +100,21 @@ app.use(session(sessionConfig));
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests from localhost ports 5173 and 5174 (Vite dev servers) and Vercel deployments
+    // Allow requests from localhost ports 5173 and 5174 (Vite dev servers)
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:5174',
-      process.env.FRONTEND_URL,
-      'https://project-4jt79k8dn-dimitris-projects-74509e82.vercel.app',
-      'https://project-88xltxi7d-dimitris-projects-74509e82.vercel.app',
-      'https://project-1c7ueljfo-dimitris-projects-74509e82.vercel.app',
-      'https://project-k3ep2tbje-dimitris-projects-74509e82.vercel.app',
-      'https://project-dimitris-projects-74509e82.vercel.app',
-      'https://project.vercel.app'
+      process.env.FRONTEND_URL
     ].filter(Boolean);
     
+    // Allow all Vercel preview deployments for this project
+    const vercelPattern = /^https:\/\/project-[a-z0-9]+-dimitris-projects-74509e82\.vercel\.app$/;
+    
     // Allow requests with no origin (like mobile apps)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || vercelPattern.test(origin)) {
       callback(null, true);
     } else {
+      console.log(`CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
