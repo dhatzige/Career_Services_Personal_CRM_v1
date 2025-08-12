@@ -8,7 +8,7 @@ Since public signups are disabled in Supabase, new users can ONLY join through i
 
 ### 2. Sending an Invitation (as Master)
 
-When logged in as master (dhatzige@act.edu), you would:
+When logged in as master user, you would:
 
 1. Call the API endpoint `POST /api/invitations` with:
    ```json

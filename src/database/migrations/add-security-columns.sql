@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_security_audit_timestamp ON security_audit_log(ti
 UPDATE users 
 SET role = 'master',
     is_active = 1
-WHERE email = 'dhatzige@act.edu' OR username = 'dhatzige';
+WHERE email = 'master@example.com' OR username = 'master'; -- Replace with actual master credentials
 
 -- Verify the update
 SELECT id, username, email, role, is_active 
