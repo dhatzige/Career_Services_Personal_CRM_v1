@@ -42,7 +42,7 @@ import reportRoutes from './routes/reports';
 // import backupRoutes from './routes/backup'; // Removed - no longer needed
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '4001', 10);
 
 // Initialize monitoring
 initMonitoring(app);
@@ -214,11 +214,12 @@ const startServer = async () => {
     const dbType = process.env.USE_SUPABASE === 'true' ? 'Supabase' : 'SQLite';
     console.log(`✅ ${dbType} database initialized`);
     
-    // Start server
-    app.listen(PORT, () => {
-      logger.info(`🚀 Career Services CRM running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
-      console.log(`🌐 API Base URL: http://localhost:${PORT}/api`);
+    // Start server - listen on all interfaces in production
+    const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+    app.listen(PORT, host, () => {
+      logger.info(`🚀 Career Services CRM running on ${host}:${PORT}`);
+      console.log(`📊 Health check: http://${host}:${PORT}/health`);
+      console.log(`🌐 API Base URL: http://${host}:${PORT}/api`);
       console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📁 Database: ./data/career_services.db`);
       console.log(`📄 Document uploads: ./uploads/`);
