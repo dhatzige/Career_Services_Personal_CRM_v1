@@ -6,7 +6,8 @@ import { asyncHandler, NotFoundError, ValidationError, handleDatabaseError } fro
 import * as Sentry from '@sentry/node';
 
 export const getAllStudents = asyncHandler(async (req: Request, res: Response) => {
-  const students = await studentCache.getList(() => StudentModel.findAll());
+  // Temporarily bypass cache to ensure fresh data with consultations
+  const students = await StudentModel.findAll();
   res.json(students);
 });
 

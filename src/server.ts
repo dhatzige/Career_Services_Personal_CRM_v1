@@ -100,11 +100,17 @@ app.use(session(sessionConfig));
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests from localhost ports 5173 and 5174 (Vite dev servers)
+    // Allow requests from localhost ports 5173 and 5174 (Vite dev servers) and Vercel deployments
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:5174',
-      process.env.FRONTEND_URL
+      process.env.FRONTEND_URL,
+      'https://project-4jt79k8dn-dimitris-projects-74509e82.vercel.app',
+      'https://project-88xltxi7d-dimitris-projects-74509e82.vercel.app',
+      'https://project-1c7ueljfo-dimitris-projects-74509e82.vercel.app',
+      'https://project-k3ep2tbje-dimitris-projects-74509e82.vercel.app',
+      'https://project-dimitris-projects-74509e82.vercel.app',
+      'https://project.vercel.app'
     ].filter(Boolean);
     
     // Allow requests with no origin (like mobile apps)

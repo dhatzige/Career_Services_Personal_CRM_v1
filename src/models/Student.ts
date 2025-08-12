@@ -78,39 +78,9 @@ export class StudentModel {
    * Get all students with optional filters
    */
   static async findAll(filters?: any): Promise<StudentType[]> {
+    // First get students without JSON aggregation
     let query = `
-      SELECT s.*,
-             (
-               SELECT json_group_array(
-                 json_object(
-                   'id', c.id,
-                   'date', c.consultation_date,
-                   'attended', CASE WHEN c.status = 'attended' THEN 1 ELSE 0 END,
-                   'status', c.status,
-                   'type', c.type,
-                   'duration', c.duration,
-                   'notes', c.notes,
-                   'followUpRequired', c.follow_up_required
-                 )
-               )
-               FROM consultations c
-               WHERE c.student_id = s.id
-               ORDER BY c.consultation_date DESC
-             ) as consultations,
-             (
-               SELECT json_group_array(
-                 json_object(
-                   'id', n.id,
-                   'content', n.content,
-                   'type', n.type,
-                   'date', n.date_created,
-                   'tags', n.tags
-                 )
-               )
-               FROM notes n
-               WHERE n.student_id = s.id
-               ORDER BY n.date_created DESC
-             ) as notes
+      SELECT s.*
       FROM students s
       WHERE 1=1
     `;
@@ -140,11 +110,43 @@ export class StudentModel {
     query += ' ORDER BY COALESCE(s.updated_at, s.created_at, s.date_added) DESC';
 
     const result = await database.query(query, values);
-    return result.rows.map(row => ({
-      ...this.transformFromDb(row),
-      consultations: row.consultations ? JSON.parse(row.consultations) : [],
-      notes: row.notes ? JSON.parse(row.notes) : []
-    }));
+    const students = result.rows.map(row => this.transformFromDb(row));
+    
+    // Now fetch consultations and notes for each student
+    for (const student of students) {
+      // Get consultations
+      const consultationsQuery = `
+        SELECT id, consultation_date as date, status, type, duration, notes, 
+               follow_up_required as followUpRequired,
+               CASE WHEN status = 'attended' THEN 1 ELSE 0 END as attended
+        FROM consultations
+        WHERE student_id = ?
+        ORDER BY consultation_date DESC
+      `;
+      const consultationsResult = await database.query(consultationsQuery, [student.id]);
+      (student as any).consultations = consultationsResult.rows || [];
+      
+      // Debug logging
+      if (consultationsResult.rows.length > 0) {
+        console.log(`Student ${student.firstName} has ${consultationsResult.rows.length} consultations`);
+      }
+      
+      // Get notes
+      const notesQuery = `
+        SELECT id, content, type, date_created as date, tags
+        FROM notes
+        WHERE student_id = ?
+        ORDER BY date_created DESC
+      `;
+      const notesResult = await database.query(notesQuery, [student.id]);
+      (student as any).notes = notesResult.rows.map((note: any) => ({
+        ...note,
+        tags: note.tags ? JSON.parse(note.tags) : []
+      }));
+    }
+    
+    console.log(`Returning ${students.length} students with consultations included`);
+    return students;
   }
 
   /**

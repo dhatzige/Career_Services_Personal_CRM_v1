@@ -11,6 +11,11 @@ const router = Router();
 router.use(authenticateSupabaseToken);
 
 /**
+ * Get all consultations
+ */
+router.get('/', consultationController.getAllConsultations);
+
+/**
  * Get all consultations for a specific student
  */
 router.get('/student/:studentId', consultationController.getConsultationsForStudent);

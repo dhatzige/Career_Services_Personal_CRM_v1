@@ -2,6 +2,25 @@ import { Request, Response } from 'express';
 import { ConsultationModel } from '../models/Consultation';
 import { StudentModel } from '../models/Student';
 
+export const getAllConsultations = async (req: Request, res: Response) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const consultations = await ConsultationModel.findAll(limit);
+    res.json({
+      success: true,
+      data: consultations,
+      total: consultations.length
+    });
+    return;
+  } catch (err) {
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch consultations' 
+    });
+    return;
+  }
+};
+
 export const getConsultationsForStudent = async (req: Request, res: Response) => {
   try {
     const consultations = await ConsultationModel.findByStudentId(req.params.studentId);
