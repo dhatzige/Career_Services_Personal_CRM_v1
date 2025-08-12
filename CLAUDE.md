@@ -3,18 +3,27 @@
 ## 🚀 Project Overview
 A comprehensive CRM system for university career services to track student consultations, manage career development, and analyze engagement patterns.
 
-**Current Version**: 0.12.0 (August 12, 2025)  
+**Current Version**: 0.12.2 (August 12, 2025)  
 **Architecture**: Hybrid - SQLite for data, Supabase for auth ONLY  
 **Stack**: React + TypeScript + Vite (Frontend), Express + TypeScript (Backend)
 
 ## 🌐 Production Deployments
-- **Frontend**: https://project-88xltxi7d-dimitris-projects-74509e82.vercel.app (Vercel)
+- **Frontend**: https://project-l84ibkcxy-dimitris-projects-74509e82.vercel.app (Vercel)
 - **Backend API**: https://career-services-personal-crm.fly.dev (Fly.io)
-- **Auth**: https://nhzuliqmjszibcbftjtq.supabase.co (Supabase)
+- **Auth**: https://tvqhnpgtpmleaiyjewmo.supabase.co (Supabase)
 
 ## 📍 Current Status
 
-### Just Completed (August 12, 2025 - Production Deployment)
+### Just Completed (August 12, 2025 - v0.12.2 Analytics & CORS Fixes)
+
+#### 🔧 Critical Production Fixes
+- ✅ **Fixed Analytics consultations** - Removed SQLite JSON aggregation, fetch consultations separately
+- ✅ **Fixed CORS for all Vercel deployments** - Uses regex pattern `/^https:\/\/project-[a-z0-9]+-dimitris-projects-74509e82\.vercel\.app$/`
+- ✅ **Fixed server listening** - Backend listens on `0.0.0.0:8080` in production for Fly.io
+- ✅ **Bypassed caching** - Ensured fresh data with consultations in studentController
+- ✅ **Fixed hardcoded text** - Changed "3+ meetings" to "1+ meetings" in Analytics
+
+### Previous Session (August 12, 2025 - Production Deployment)
 
 #### 🚀 Full Stack Deployment
 - ✅ **Frontend deployed to Vercel** - Production app with environment variables
@@ -194,13 +203,15 @@ cd backend && sqlite3 data/students.db < src/database/migrations/[migration].sql
 
 ## ⚠️ Important Notes
 
-1. **Ports**: Backend MUST run on 4001, Frontend on 5173
+1. **Ports**: Backend runs on 4001 locally, 8080 in production (Fly.io)
 2. **Auth**: Uses Supabase EXCLUSIVELY for authentication (no legacy SQLite auth)
 3. **Database**: SQLite file at `/backend/data/career_services.db` (data only, no auth)
-4. **Sentry**: Organization "act-l6", projects: career-services-frontend/backend
+4. **Sentry**: Organization "act-l6", projects: career-services-frontend/backend (CORS issues in production - non-critical)
 5. **Redis Cache**: Optional - app works without it (uses in-memory cache)
 6. **Master User**: dhatzige@act.edu has full system control
 7. **Registration**: Invite-only system, no public signup allowed
+8. **CORS**: Backend allows all Vercel preview deployments via regex pattern
+9. **SQLite Limitations**: Avoid JSON aggregation functions (json_group_array) - fetch related data separately
 
 ## 🐛 System Health
 
