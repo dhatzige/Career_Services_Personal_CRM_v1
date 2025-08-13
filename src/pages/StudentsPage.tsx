@@ -13,6 +13,7 @@ import type { Student, Note, Consultation } from '@/types';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import StudentTableView from '@/components/StudentTableView';
 import StudentTableMobile from '@/components/StudentTableMobile';
+import { addToRecentlyViewed } from '@/components/RecentlyViewed';
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -247,10 +248,12 @@ export default function StudentsPage() {
   const handleSelectStudent = async (student: Student, tab?: string) => {
     setSelectedStudent(student);
     
-    // Track recently viewed students
+    // Track recently viewed students using the RecentlyViewed component's function
+    addToRecentlyViewed(student.id);
+    
+    // Also update local state for compatibility
     const updatedRecentlyViewed = [student.id, ...recentlyViewed.filter(id => id !== student.id)].slice(0, 10);
     setRecentlyViewed(updatedRecentlyViewed);
-    localStorage.setItem('recentlyViewedStudents', JSON.stringify(updatedRecentlyViewed));
     
     // Set the tab if explicitly requested
     if (tab) {

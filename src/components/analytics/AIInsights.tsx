@@ -258,35 +258,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ students, dateRange, metrics })
         </div>
       )}
 
-      {/* Quick Actions Based on Insights */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Recommended Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <button className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/50 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/70 transition-colors text-left">
-            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-3" />
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Contact At-Risk Students</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Reach out to disengaged students</p>
-            </div>
-          </button>
-          
-          <button className="flex items-center p-3 bg-green-50 dark:bg-green-900/50 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/70 transition-colors text-left">
-            <Calendar className="h-5 w-5 text-green-600 dark:text-green-400 mr-3" />
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Schedule Follow-ups</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Book meetings with pending students</p>
-            </div>
-          </button>
-          
-          <button className="flex items-center p-3 bg-purple-50 dark:bg-purple-900/50 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/70 transition-colors text-left">
-            <Target className="h-5 w-5 text-purple-600 dark:text-purple-400 mr-3" />
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Launch Campaign</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Start targeted engagement initiative</p>
-            </div>
-          </button>
-        </div>
-      </div>
+      {/* Removed Recommended Actions section per user request */}
     </div>
   );
 };

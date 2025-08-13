@@ -41,14 +41,14 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({ onStudentClick }) => {
       
       // Fetch all students from API
       const response = await api.students.list();
-      if (response.success && response.data) {
-        const allStudents = response.data;
-        const recent = recentIds
-          .map(id => allStudents.find(s => s.id === id))
-          .filter(Boolean) as Student[];
-        
-        setRecentStudents(recent);
-      }
+      // API returns the array directly, not wrapped in an object
+      const allStudents = Array.isArray(response) ? response : (response?.data || []);
+      
+      const recent = recentIds
+        .map(id => allStudents.find((s: Student) => s.id === id))
+        .filter(Boolean) as Student[];
+      
+      setRecentStudents(recent);
     } catch (error) {
       console.error('Error loading recent students:', error);
       setRecentStudents([]);
