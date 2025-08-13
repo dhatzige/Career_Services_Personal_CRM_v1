@@ -35,8 +35,9 @@ export default function CalendarPage() {
     try {
       setLoading(true);
       const response = await api.get('/calendar/meetings/upcoming');
-      // The api.get already returns res.data, so we need response.data not response.data.data
-      setUpcomingMeetings(response.data || []);
+      // The api.get already returns res.data, and backend sends { success: true, data: meetings }
+      // So response is the full object with success and data properties
+      setUpcomingMeetings(response?.data || response || []);
     } catch (error) {
       console.error('Failed to load meetings:', error);
       // Don't show error toast for now, just set empty meetings
