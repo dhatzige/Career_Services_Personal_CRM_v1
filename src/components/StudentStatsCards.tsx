@@ -6,9 +6,10 @@ interface StudentStatsCardsProps {
   students: Student[];
   consultations?: Record<string, Consultation[]>;
   onStatClick?: (filterType: string, filterValue: string) => void;
+  activeFilter?: { type: string; value: string } | null;
 }
 
-export default function StudentStatsCards({ students, consultations = {}, onStatClick }: StudentStatsCardsProps) {
+export default function StudentStatsCards({ students, consultations = {}, onStatClick, activeFilter }: StudentStatsCardsProps) {
   // Calculate statistics
   const totalStudents = students.length;
   
@@ -129,10 +130,22 @@ export default function StudentStatsCards({ students, consultations = {}, onStat
         const Icon = stat.icon;
         const isClickable = stat.clickable && onStatClick;
         
+        // Check if this stat card is the active filter
+        const isActive = activeFilter && 
+          activeFilter.type === stat.filterType && 
+          (activeFilter.value === stat.filterValue ||
+           (stat.filterType === 'jobStatus' && 
+            ((stat.filterValue === 'active' && activeFilter.value === 'active_seekers') ||
+             (stat.filterValue === 'employed' && activeFilter.value === 'employed_offers'))));
+        
         return (
           <Card 
             key={index} 
-            className={`transition-all ${isClickable ? 'hover:shadow-lg cursor-pointer hover:scale-105' : 'hover:shadow-lg'}`}
+            className={`transition-all ${
+              isClickable ? 'hover:shadow-lg cursor-pointer hover:scale-105' : 'hover:shadow-lg'
+            } ${
+              isActive ? 'ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-900/20' : ''
+            }`}
             onClick={() => {
               if (isClickable) {
                 onStatClick(stat.filterType, stat.filterValue);

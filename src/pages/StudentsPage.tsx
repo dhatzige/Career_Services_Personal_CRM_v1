@@ -415,36 +415,55 @@ export default function StudentsPage() {
     }
   };
 
-  // Handle stat card clicks to filter students
+  // Handle stat card clicks to filter students (toggle behavior)
   const handleStatClick = (filterType: string, filterValue: string) => {
-    // Reset all filters first
-    setFilterYear('');
-    setFilterProgram('');
-    setFilterJobStatus('');
-    setFilterActivity('');
-    setFilterConsultations('');
-    setSearchTerm('');
+    // Check if this filter is currently active
+    const isCurrentlyActive = 
+      (filterType === 'all' && !filterYear && !filterProgram && !filterJobStatus && !filterActivity && !filterConsultations && !searchTerm) ||
+      (filterType === 'jobStatus' && 
+        ((filterValue === 'active' && filterJobStatus === 'active_seekers') ||
+         (filterValue === 'employed' && filterJobStatus === 'employed_offers'))) ||
+      (filterType === 'activity' && filterActivity === filterValue) ||
+      (filterType === 'consultations' && filterConsultations === filterValue);
     
-    // Apply the specific filter based on stat clicked
-    switch(filterType) {
-      case 'all':
-        // Show all students - filters already reset
-        break;
-      case 'jobStatus':
-        if (filterValue === 'active') {
-          // For active job seekers, we'll handle this in the filter effect
-          setFilterJobStatus('active_seekers');
-        } else if (filterValue === 'employed') {
-          // For employed/offers, we'll handle this in the filter effect
-          setFilterJobStatus('employed_offers');
-        }
-        break;
-      case 'activity':
-        setFilterActivity(filterValue);
-        break;
-      case 'consultations':
-        setFilterConsultations(filterValue);
-        break;
+    if (isCurrentlyActive) {
+      // If clicking the same active filter, clear all filters (toggle off)
+      setFilterYear('');
+      setFilterProgram('');
+      setFilterJobStatus('');
+      setFilterActivity('');
+      setFilterConsultations('');
+      setSearchTerm('');
+    } else {
+      // Reset all filters first
+      setFilterYear('');
+      setFilterProgram('');
+      setFilterJobStatus('');
+      setFilterActivity('');
+      setFilterConsultations('');
+      setSearchTerm('');
+      
+      // Apply the specific filter based on stat clicked
+      switch(filterType) {
+        case 'all':
+          // Show all students - filters already reset
+          break;
+        case 'jobStatus':
+          if (filterValue === 'active') {
+            // For active job seekers, we'll handle this in the filter effect
+            setFilterJobStatus('active_seekers');
+          } else if (filterValue === 'employed') {
+            // For employed/offers, we'll handle this in the filter effect
+            setFilterJobStatus('employed_offers');
+          }
+          break;
+        case 'activity':
+          setFilterActivity(filterValue);
+          break;
+        case 'consultations':
+          setFilterConsultations(filterValue);
+          break;
+      }
     }
     
     // Show filters panel to make it clear what's being filtered
@@ -487,7 +506,24 @@ export default function StudentsPage() {
       </div>
 
       {/* Statistics Cards */}
-      {students.length > 0 && <StudentStatsCards students={students} consultations={studentConsultations} onStatClick={handleStatClick} />}
+      {students.length > 0 && (
+        <StudentStatsCards 
+          students={students} 
+          consultations={studentConsultations} 
+          onStatClick={handleStatClick}
+          activeFilter={(() => {
+            // Determine the active filter for visual feedback
+            if (filterJobStatus === 'active_seekers') return { type: 'jobStatus', value: 'active_seekers' };
+            if (filterJobStatus === 'employed_offers') return { type: 'jobStatus', value: 'employed_offers' };
+            if (filterActivity) return { type: 'activity', value: filterActivity };
+            if (filterConsultations) return { type: 'consultations', value: filterConsultations };
+            if (!filterYear && !filterProgram && !filterJobStatus && !filterActivity && !filterConsultations && !searchTerm) {
+              return { type: 'all', value: 'all' };
+            }
+            return null;
+          })()}
+        />
+      )}
 
       <div className="mb-6 space-y-4">
         <div className="flex flex-col sm:flex-row items-center gap-4">
