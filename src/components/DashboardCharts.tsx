@@ -25,22 +25,36 @@ interface TooltipProps {
 const DashboardCharts: React.FC<DashboardChartsProps> = ({ students }) => {
   // Program distribution data
   const programData: ChartDataItem[] = students.reduce((acc: ChartDataItem[], student) => {
-    const existing = acc.find(item => item.name === student.specificProgram);
+    // Use specificProgram if available, otherwise fall back to programType
+    const programName = student.specificProgram || student.programType || 'Unknown';
+    const existing = acc.find(item => item.name === programName);
     if (existing) {
       existing.value++;
     } else {
-      acc.push({ name: student.specificProgram, value: 1 });
+      acc.push({ name: programName, value: 1 });
     }
     return acc;
   }, []);
 
-  // Year distribution data
+  // Year distribution data - categorize by program type and year
   const yearData: ChartDataItem[] = students.reduce((acc: ChartDataItem[], student) => {
-    const existing = acc.find(item => item.name === student.yearOfStudy);
+    // Create a label that includes program type for clarity
+    let label = student.yearOfStudy || 'Unknown';
+    
+    // Add program context for better understanding
+    if (student.yearOfStudy === 'Alumni') {
+      label = 'Alumni';
+    } else if (student.programType === "Bachelor's" && student.yearOfStudy) {
+      label = `Bachelor's - ${student.yearOfStudy}`;
+    } else if (student.programType === "Master's" && student.yearOfStudy) {
+      label = `Master's - ${student.yearOfStudy}`;
+    }
+    
+    const existing = acc.find(item => item.name === label);
     if (existing) {
       existing.value++;
     } else {
-      acc.push({ name: student.yearOfStudy, value: 1 });
+      acc.push({ name: label, value: 1 });
     }
     return acc;
   }, []);
@@ -68,7 +82,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ students }) => {
         <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
           <p className="text-gray-900 dark:text-white font-medium">{label}</p>
           <p className="text-blue-600 dark:text-blue-400">
-            Count: {payload[0].value}
+            Students: {payload[0].value}
           </p>
         </div>
       );
