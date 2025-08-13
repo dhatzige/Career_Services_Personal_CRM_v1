@@ -202,13 +202,19 @@ export class ConsultationModel {
    * Get consultations in date range
    */
   static async findByDateRange(startDate: string, endDate: string): Promise<ConsultationType[]> {
+    // For SQLite, we need to ensure we're comparing dates properly
+    // Add time components to ensure we get all consultations for the day
+    const startDateTime = `${startDate} 00:00:00`;
+    const endDateTime = `${endDate} 23:59:59`;
+    
     const query = `
       SELECT * FROM consultations 
-      WHERE consultation_date >= $1 AND consultation_date <= $2
+      WHERE datetime(consultation_date) >= datetime($1) 
+        AND datetime(consultation_date) <= datetime($2)
       ORDER BY consultation_date ASC
     `;
     
-    const result = await database.query(query, [startDate, endDate]);
+    const result = await database.query(query, [startDateTime, endDateTime]);
     return result.rows.map(row => this.transformFromDb(row));
   }
 
@@ -258,19 +264,25 @@ export class ConsultationModel {
    * Get consultations by date range (for reports)
    */
   static async getConsultationsByDateRange(startDate: string, endDate: string): Promise<any[]> {
+    // For SQLite, ensure we're comparing dates properly with time components
+    const startDateTime = `${startDate} 00:00:00`;
+    const endDateTime = `${endDate} 23:59:59`;
+    
     const query = `
       SELECT c.*, 
              s.first_name || ' ' || s.last_name as student_name,
              s.email as student_email,
+             s.id as student_id_full,
              c.status,
              c.advisor_name
       FROM consultations c
       JOIN students s ON c.student_id = s.id
-      WHERE c.consultation_date >= $1 AND c.consultation_date <= $2
+      WHERE datetime(c.consultation_date) >= datetime($1) 
+        AND datetime(c.consultation_date) <= datetime($2)
       ORDER BY c.consultation_date ASC
     `;
     
-    const result = await database.query(query, [startDate, endDate]);
+    const result = await database.query(query, [startDateTime, endDateTime]);
     return result.rows.map(row => ({
       id: row.id,
       studentId: row.student_id,

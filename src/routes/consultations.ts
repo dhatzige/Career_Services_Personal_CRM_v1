@@ -57,7 +57,8 @@ router.get('/date-range/:startDate/:endDate', async (req: Request, res: Response
       return;
     }
 
-    const consultations = await ConsultationModel.findByDateRange(startDate, endDate);
+    // Get consultations with student info (for Today's Schedule)
+    const consultations = await ConsultationModel.getConsultationsByDateRange(startDate, endDate);
     
     res.json({
       success: true,
