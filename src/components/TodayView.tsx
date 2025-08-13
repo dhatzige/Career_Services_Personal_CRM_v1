@@ -45,11 +45,24 @@ const TodayView: React.FC = () => {
       const startDate = format(today, 'yyyy-MM-dd');
       const endDate = startDate;
       
+      console.log(`Loading consultations for date: ${startDate}`); // Debug log
+      
       const response = await api.consultations.dateRange(startDate, endDate);
       const consultationsData = response.data || response || [];
       
+      console.log(`Found ${consultationsData.length} consultations:`, consultationsData); // Debug log
+      
+      // Map the response data to include proper student info
+      const mappedData = consultationsData.map((c: any) => ({
+        ...c,
+        studentName: c.studentName || c.student_name || 'Unknown',
+        studentEmail: c.studentEmail || c.student_email || '',
+        studentId: c.studentId || c.student_id || '',
+        date: c.date || c.consultation_date || c.scheduled_date
+      }));
+      
       // Sort by time
-      const sorted = consultationsData.sort((a: any, b: any) => 
+      const sorted = mappedData.sort((a: any, b: any) => 
         new Date(a.date).getTime() - new Date(b.date).getTime()
       );
       
@@ -58,6 +71,7 @@ const TodayView: React.FC = () => {
       // Check for no-shows (15 minutes past scheduled time)
       checkForNoShows(sorted);
     } catch (error) {
+      console.error('Error loading consultations:', error); // Debug log
       Sentry.captureException(error, {
         tags: { operation: 'load_today_consultations' }
       });
