@@ -322,7 +322,7 @@ Pending Follow-ups: ${stats.pendingFollowUps}
       {/* High No-Show Alert */}
       {/* High no-show students section - temporarily disabled */}
 
-      {/* Quick Actions */}
+      {/* Quick Actions - REMOVED per user request
       <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">Quick Actions</h2>
@@ -347,6 +347,7 @@ Pending Follow-ups: ${stats.pendingFollowUps}
           </div>
         </div>
       </div>
+      */}
 
       {/* Recent Activity */}
       <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700">
