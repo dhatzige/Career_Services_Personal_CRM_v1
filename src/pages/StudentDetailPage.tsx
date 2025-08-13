@@ -54,8 +54,10 @@ export default function StudentDetailPage() {
   const fetchStudent = async () => {
     try {
       const response = await api.get(`/students/${id}`);
-      setStudent(response.data);
-      setEditedStudent(response.data);
+      // api.get already returns the data directly, not wrapped in { data: ... }
+      const studentData = response?.data || response;
+      setStudent(studentData);
+      setEditedStudent(studentData);
     } catch (error) {
       console.error('Error fetching student:', error);
     }
@@ -72,7 +74,9 @@ export default function StudentDetailPage() {
 
     try {
       const response = await api.put(`/students/${id}`, editedStudent);
-      setStudent(response.data);
+      // api.put already returns the data directly
+      const updatedStudent = response?.data || response;
+      setStudent(updatedStudent);
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating student:', error);
@@ -118,7 +122,7 @@ export default function StudentDetailPage() {
               
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {student.first_name} {student.last_name}
+                  {student.first_name || student.firstName} {student.last_name || student.lastName}
                 </h1>
                 <div className="mt-2 space-y-1">
                   <div className="flex items-center text-gray-600">
@@ -149,9 +153,9 @@ export default function StudentDetailPage() {
             </div>
 
             <div className="flex items-center space-x-2">
-              {student.job_search_status && (
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${jobSearchStatusColors[student.job_search_status] || 'bg-gray-100 text-gray-800'}`}>
-                  {student.job_search_status}
+              {(student.job_search_status || student.jobSearchStatus) && (
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${jobSearchStatusColors[student.job_search_status || student.jobSearchStatus] || 'bg-gray-100 text-gray-800'}`}>
+                  {student.job_search_status || student.jobSearchStatus}
                 </span>
               )}
               {isEditing ? (
@@ -190,7 +194,7 @@ export default function StudentDetailPage() {
             <div>
               <h3 className="text-sm font-medium text-gray-500">Academic Info</h3>
               <p className="mt-1 text-sm text-gray-900">
-                {student.year_of_study} - {student.program_type}
+                {student.year_of_study || student.yearOfStudy} - {student.program_type || student.programType}
               </p>
               <p className="text-sm text-gray-900">{student.major}</p>
               {student.expected_graduation && (
