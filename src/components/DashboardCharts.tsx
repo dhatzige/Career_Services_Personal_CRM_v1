@@ -27,18 +27,26 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ students }) => {
   const programData: ChartDataItem[] = students.reduce((acc: ChartDataItem[], student) => {
     let programName = '';
     
-    // For Master's students, use the major field (MBA, MSc, etc.) if available
-    if (student.programType === "Master's" && student.major) {
-      programName = student.major;
-    } 
-    // Otherwise use specificProgram, then major, then programType
-    else {
+    // Determine the most specific program name available
+    if (student.programType === "Master's") {
+      // For Master's, prioritize: major (MBA, MSc, etc.) > specificProgram > "Master's"
+      programName = student.major || student.specificProgram || "Master's Program";
+    } else if (student.programType === "Bachelor's") {
+      // For Bachelor's, prioritize: specificProgram > major > "Bachelor's"
+      programName = student.specificProgram || student.major || "Bachelor's Program";
+    } else {
+      // Fallback for any other cases
       programName = student.specificProgram || student.major || student.programType || 'Unknown';
     }
     
     // Add (Alumni) suffix if the student has graduated
     if (student.yearOfStudy === 'Alumni') {
       programName = `${programName} (Alumni)`;
+    } else if (student.yearOfStudy && student.yearOfStudy !== 'Alumni') {
+      // Optionally add year for current students
+      // This helps distinguish between different years of the same program
+      // Commented out for now - uncomment if desired
+      // programName = `${programName} (${student.yearOfStudy})`;
     }
     
     const existing = acc.find(item => item.name === programName);
