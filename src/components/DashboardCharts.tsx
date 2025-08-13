@@ -23,10 +23,24 @@ interface TooltipProps {
 }
 
 const DashboardCharts: React.FC<DashboardChartsProps> = ({ students }) => {
-  // Program distribution data
+  // Program distribution data - separate current students from alumni
   const programData: ChartDataItem[] = students.reduce((acc: ChartDataItem[], student) => {
-    // Use specificProgram if available, otherwise use major, then programType as fallback
-    const programName = student.specificProgram || student.major || student.programType || 'Unknown';
+    let programName = '';
+    
+    // For Master's students, use the major field (MBA, MSc, etc.) if available
+    if (student.programType === "Master's" && student.major) {
+      programName = student.major;
+    } 
+    // Otherwise use specificProgram, then major, then programType
+    else {
+      programName = student.specificProgram || student.major || student.programType || 'Unknown';
+    }
+    
+    // Add (Alumni) suffix if the student has graduated
+    if (student.yearOfStudy === 'Alumni') {
+      programName = `${programName} (Alumni)`;
+    }
+    
     const existing = acc.find(item => item.name === programName);
     if (existing) {
       existing.value++;
