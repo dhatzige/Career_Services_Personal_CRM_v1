@@ -100,10 +100,11 @@ app.use(session(sessionConfig));
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests from localhost ports 5173 and 5174 (Vite dev servers)
+    // Allow requests from localhost ports 5173, 5174, and 5175 (Vite dev servers)
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:5174',
+      'http://localhost:5175',
       process.env.FRONTEND_URL
     ].filter(Boolean);
     
