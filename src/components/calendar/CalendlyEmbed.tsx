@@ -62,11 +62,13 @@ export default function CalendlyEmbed({
   const loadCalendlyConfig = async () => {
     try {
       const response = await api.get('/calendar/config/calendly');
-      console.log('Calendly config loaded:', response.data);
-      setConfig(response.data.data);
+      console.log('Calendly config loaded:', response);
+      // API returns { success: true, data: {...} }
+      const configData = response?.data || response;
+      setConfig(configData);
       
       // Set default event type
-      const eventTypes = response.data.data.eventTypes;
+      const eventTypes = configData?.eventTypes;
       if (eventTypes && eventTypes.length > 0) {
         // If eventTypes are objects (from API), use the first one
         if (typeof eventTypes[0] === 'object') {
