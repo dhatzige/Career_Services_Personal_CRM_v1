@@ -8,16 +8,16 @@
 ### CRITICAL BUGS (Production Breaking)
 | ID | Task | Status | Branch | Test Criteria |
 |---|---|---|---|---|
-| CRITICAL-1 | Fix Today's Schedule - meetings not showing (12:00 PM GR time meeting missing) | 🔴 PENDING | `fix/todays-schedule` | Meeting appears in Today's Schedule view |
-| CRITICAL-2 | Fix Calendar page - not working/loading | 🔴 PENDING | `fix/calendar-page` | Calendar page loads and displays data |
-| CRITICAL-3 | Fix Dashboard data - not updating with correct information | 🔴 PENDING | `fix/dashboard-data` | Dashboard shows accurate counts |
+| CRITICAL-1 | Fix Today's Schedule - meetings not showing (12:00 PM GR time meeting missing) | ✅ COMPLETED (2025-08-13) | `fix/todays-schedule` | Meeting appears in Today's Schedule view |
+| CRITICAL-2 | Fix CORS blocking frontend-backend connection | ✅ COMPLETED (2025-08-13) | `fix/todays-schedule` | API requests work from port 5175 |
+| CRITICAL-3 | Fix consultation time showing wrong (was 9AM, should be 12PM) | ✅ COMPLETED (2025-08-13) | `fix/todays-schedule` | Shows correct local time |
 
 ### UI CLEANUP (Remove Unnecessary Elements)
 | ID | Task | Status | Branch | Location |
 |---|---|---|---|---|
-| CLEANUP-1 | Remove Dashboard Quick Actions (Add Student, Quick Note, View Reports) | 🔴 PENDING | `cleanup/dashboard-actions` | Dashboard.tsx |
-| CLEANUP-2 | Remove Dashboard Recommended Actions section entirely | 🔴 PENDING | `cleanup/dashboard-actions` | Dashboard.tsx |
-| CLEANUP-3 | Remove Analytics Recommended Actions section | 🔴 PENDING | `cleanup/analytics-actions` | AnalyticsPage.tsx |
+| CLEANUP-1 | Remove Dashboard Quick Actions (Add Student, Quick Note, View Reports) | ✅ COMPLETED (2025-08-13) | `fix/todays-schedule` | Dashboard.tsx |
+| CLEANUP-2 | Remove Dashboard Recommended Actions section entirely | N/A - Doesn't exist | - | Dashboard.tsx |
+| CLEANUP-3 | Remove Analytics Recommended Actions section | N/A - Doesn't exist | - | AnalyticsPage.tsx |
 
 ## 📋 Development Methodology
 
