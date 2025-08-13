@@ -101,10 +101,10 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ students }) => {
   const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-          <p className="text-gray-900 dark:text-white font-medium">{label}</p>
-          <p className="text-blue-600 dark:text-blue-400">
-            Students: {payload[0].value}
+        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-w-xs z-50">
+          <p className="text-gray-900 dark:text-white font-medium text-sm break-words">{label}</p>
+          <p className="text-blue-600 dark:text-blue-400 text-sm">
+            Count: {payload[0].value}
           </p>
         </div>
       );
@@ -113,44 +113,57 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ students }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
       {/* Program Distribution */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
           Students by Program
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={programData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis 
-              dataKey="name" 
-              stroke="#6B7280"
-              tick={{ fontSize: 12 }}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis stroke="#6B7280" />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="value" fill="#3B82F6" />
-          </BarChart>
-        </ResponsiveContainer>
+        {programData.length > 5 && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Showing all {programData.length} programs
+          </p>
+        )}
+        <div className="overflow-x-auto">
+          <ResponsiveContainer width={Math.max(400, programData.length * 120)} height={400}>
+            <BarChart data={programData} margin={{ top: 20, right: 30, left: 20, bottom: 120 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="name" 
+                stroke="#6B7280"
+                tick={{ fontSize: 11 }}
+                angle={-45}
+                textAnchor="end"
+                height={100}
+                interval={0}
+              />
+              <YAxis stroke="#6B7280" />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="value" fill="#3B82F6" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Year Distribution */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
           Students by Year
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={400}>
           <PieChart>
             <Pie
               data={yearData}
               cx="50%"
-              cy="50%"
-              outerRadius={80}
+              cy="45%"
+              innerRadius={60}
+              outerRadius={100}
               dataKey="value"
-              label={({ name, value }) => `${name}: ${value}`}
+              labelLine={false}
+              label={(entry) => {
+                const percent = ((entry.value / students.length) * 100).toFixed(0);
+                return entry.value > 0 ? `${entry.name}: ${entry.value} (${percent}%)` : '';
+              }}
             >
               {yearData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
@@ -159,29 +172,51 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ students }) => {
             <Tooltip content={<CustomTooltip />} />
           </PieChart>
         </ResponsiveContainer>
+        <div className="mt-4 space-y-2">
+          {yearData.map((entry, index) => (
+            <div key={entry.name} className="flex items-center justify-between text-sm">
+              <div className="flex items-center">
+                <div 
+                  className="w-3 h-3 rounded mr-2" 
+                  style={{ backgroundColor: colors[index % colors.length] }}
+                />
+                <span className="text-gray-700 dark:text-gray-300">{entry.name}</span>
+              </div>
+              <span className="text-gray-600 dark:text-gray-400">{entry.value} students</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Consultation Types */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 lg:col-span-2">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 xl:col-span-2 overflow-hidden">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
           Consultation Types Distribution
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={consultationData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis 
-              dataKey="name" 
-              stroke="#6B7280"
-              tick={{ fontSize: 12 }}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis stroke="#6B7280" />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="value" fill="#10B981" />
-          </BarChart>
-        </ResponsiveContainer>
+        {consultationData.length > 8 && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Showing all {consultationData.length} consultation types
+          </p>
+        )}
+        <div className="overflow-x-auto">
+          <ResponsiveContainer width={Math.max(600, consultationData.length * 100)} height={400}>
+            <BarChart data={consultationData} margin={{ top: 20, right: 30, left: 20, bottom: 120 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="name" 
+                stroke="#6B7280"
+                tick={{ fontSize: 11 }}
+                angle={-45}
+                textAnchor="end"
+                height={100}
+                interval={0}
+              />
+              <YAxis stroke="#6B7280" />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="value" fill="#10B981" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );
