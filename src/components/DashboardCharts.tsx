@@ -25,8 +25,8 @@ interface TooltipProps {
 const DashboardCharts: React.FC<DashboardChartsProps> = ({ students }) => {
   // Program distribution data
   const programData: ChartDataItem[] = students.reduce((acc: ChartDataItem[], student) => {
-    // Use specificProgram if available, otherwise fall back to programType
-    const programName = student.specificProgram || student.programType || 'Unknown';
+    // Use specificProgram if available, otherwise use major, then programType as fallback
+    const programName = student.specificProgram || student.major || student.programType || 'Unknown';
     const existing = acc.find(item => item.name === programName);
     if (existing) {
       existing.value++;
