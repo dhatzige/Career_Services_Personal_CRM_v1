@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 // Export data from backend
 export const exportData = async (type: 'students' | 'consultations' | 'notes', format: 'csv' | 'json' = 'csv') => {
   try {
-    const response = await apiClient.get('/api/reports/export', {
+    const response = await apiClient.get('/reports/export', {
       params: { type, format },
       responseType: format === 'csv' ? 'text' : 'json'
     });
@@ -60,7 +60,7 @@ export const importStudentsFromCSV = async (file: File): Promise<{
       complete: async (results) => {
         try {
           // Send parsed data to backend
-          const response = await apiClient.post('/api/reports/import', {
+          const response = await apiClient.post('/reports/import', {
             type: 'students',
             data: results.data
           });
@@ -88,46 +88,66 @@ export const importStudentsFromCSV = async (file: File): Promise<{
   });
 };
 
-// Download CSV template
-export const downloadCSVTemplate = () => {
-  const templateData = [
-    {
-      'First Name': 'John',
-      'Last Name': 'Doe',
-      'Email': 'john.doe@university.edu',
-      'Phone': '+1 (555) 123-4567',
-      'Status': 'Active',
-      'Current Year': '3rd year',
-      'Program Type': "Bachelor's",
-      'Degree Program': 'Computer Science',
-      'Major/Specialization': ''
-    },
-    {
-      'First Name': 'Jane',
-      'Last Name': 'Smith',
-      'Email': 'jane.smith@university.edu',
-      'Phone': '+1 (555) 987-6543',
-      'Status': 'Active',
-      'Current Year': '1st year',
-      'Program Type': "Master's",
-      'Degree Program': 'MBA',
-      'Major/Specialization': 'Finance'
-    },
-    {
-      'First Name': 'Mike',
-      'Last Name': 'Johnson',
-      'Email': 'mike.johnson@university.edu',
-      'Phone': '',
-      'Status': 'Active',
-      'Current Year': '2nd year',
-      'Program Type': "Bachelor's",
-      'Degree Program': 'Engineering',
-      'Major/Specialization': 'Mechanical'
-    }
+// Generate updated CSV template for current database structure
+const generateUpdatedCSVTemplate = () => {
+  const headers = [
+    'first_name',
+    'last_name', 
+    'email',
+    'phone',
+    'year_of_study',
+    'program_type',
+    'specific_program',
+    'major',
+    'status',
+    'job_search_status',
+    'career_interests',
+    'target_industries', 
+    'target_locations',
+    'linkedin_url',
+    'resume_on_file',
+    'academic_start_date',
+    'expected_graduation',
+    'tags',
+    'quick_note'
   ];
 
-  const csv = Papa.unparse(templateData);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const sampleData = [
+    [
+      'John',
+      'Doe', 
+      'john.doe@university.edu',
+      '+1 (555) 123-4567',
+      '3rd year',
+      "Bachelor's",
+      'Computer Science',
+      'Computer Science',
+      'Active',
+      'Actively Searching',
+      '["Software Engineering","Data Science"]',
+      '["Technology","Finance"]',
+      '["New York","Remote"]',
+      'https://linkedin.com/in/johndoe',
+      'true',
+      '2022-09-01',
+      '2026-06-15',
+      '["honors","scholarship"]',
+      'Transferred from community college'
+    ]
+  ];
+
+  const csvContent = [
+    headers.join(','),
+    ...sampleData.map(row => row.map(field => `"${field}"`).join(','))
+  ].join('\n');
+
+  return csvContent;
+};
+
+// Download CSV template with current database structure
+export const downloadCSVTemplate = () => {
+  const csvContent = generateUpdatedCSVTemplate();
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -137,7 +157,7 @@ export const downloadCSVTemplate = () => {
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
   
-  toast.success('Template downloaded successfully');
+  toast.success('Updated CSV template downloaded successfully');
 };
 
 // Export all data as a backup
@@ -145,9 +165,9 @@ export const exportBackup = async () => {
   try {
     // Get all data types
     const [students, consultations, notes] = await Promise.all([
-      apiClient.get('/api/reports/export', { params: { type: 'students', format: 'json' } }),
-      apiClient.get('/api/reports/export', { params: { type: 'consultations', format: 'json' } }),
-      apiClient.get('/api/reports/export', { params: { type: 'notes', format: 'json' } })
+      apiClient.get('/reports/export', { params: { type: 'students', format: 'json' } }),
+      apiClient.get('/reports/export', { params: { type: 'consultations', format: 'json' } }),
+      apiClient.get('/reports/export', { params: { type: 'notes', format: 'json' } })
     ]);
 
     const backup = {

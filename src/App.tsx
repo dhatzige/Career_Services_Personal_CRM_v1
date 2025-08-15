@@ -18,8 +18,6 @@ const StudentsPage = lazy(() => import('./pages/StudentsPage'));
 const StudentDetailPage = lazy(() => import('./pages/StudentDetailPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const CalendarPage = lazy(() => import('./pages/Calendar'));
-const CareerPage = lazy(() => import('./pages/CareerPage'));
-const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const TodayView = lazy(() => import('./components/TodayView').then(module => ({ default: module.default })));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 
@@ -113,30 +111,6 @@ function App() {
                   <Layout>
                     <Suspense fallback={<LoadingSpinner />}>
                       <TodayView />
-                    </Suspense>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/career"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <CareerPage />
-                    </Suspense>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <ReportsPage />
                     </Suspense>
                   </Layout>
                 </ProtectedRoute>

@@ -44,6 +44,38 @@
   .dark input[type="date"] {
     color-scheme: dark;
   }
+  
+  /* Chart tooltip variables for theme-aware styling */
+  :root {
+    --tooltip-bg: rgba(255, 255, 255, 0.95);
+    --tooltip-border: rgb(209, 213, 219);
+    --tooltip-text: rgb(17, 24, 39);
+  }
+  
+  .dark {
+    --tooltip-bg: rgba(31, 41, 55, 0.95);
+    --tooltip-border: rgb(55, 65, 81);
+    --tooltip-text: rgb(229, 231, 235);
+  }
+
+  /* Force Recharts tooltips to use correct colors in dark mode */
+  .dark .recharts-default-tooltip {
+    background-color: rgba(31, 41, 55, 0.95) !important;
+    border: 1px solid rgb(55, 65, 81) !important;
+    color: rgb(229, 231, 235) !important;
+  }
+
+  .dark .recharts-tooltip-wrapper {
+    color: rgb(229, 231, 235) !important;
+  }
+
+  .dark .recharts-tooltip-item {
+    color: rgb(229, 231, 235) !important;
+  }
+
+  .dark .recharts-tooltip-label {
+    color: rgb(229, 231, 235) !important;
+  }
 }
 
 /* Utility classes for scrollbar hiding */

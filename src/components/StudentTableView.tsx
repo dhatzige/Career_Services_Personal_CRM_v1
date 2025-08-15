@@ -31,6 +31,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { api } from '@/services/apiClient';
 import { apiCache, cachePatterns } from '@/services/apiCache';
+import { isNewStudent, hasUpcomingConsultation, hasConsultationToday, getMostRecentConsultation } from '@/utils/studentHelpers';
 
 interface StudentTableViewProps {
   students: Student[];
@@ -58,56 +59,6 @@ const StudentTableView: React.FC<StudentTableViewProps> = ({
   onUpdateConsultation
 }) => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  
-  // Check if student was recently added (within last 7 days)
-  const isNewStudent = (student: Student) => {
-    const createdDate = student.created_at || student.date_added;
-    if (!createdDate) return false;
-    const daysSinceCreated = Math.floor((new Date().getTime() - new Date(createdDate).getTime()) / (1000 * 3600 * 24));
-    return daysSinceCreated <= 7;
-  };
-  
-  // Check for upcoming consultations (within next 7 days)
-  const hasUpcomingConsultation = (student: Student) => {
-    const studentConsultations = consultations[student.id] || [];
-    if (studentConsultations.length === 0) return false;
-    const now = new Date();
-    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
-    return studentConsultations.some(consultation => {
-      const consultDate = new Date(consultation.date || consultation.scheduled_date || consultation.consultation_date);
-      return consultDate >= now && consultDate <= weekFromNow && consultation.status !== 'cancelled';
-    });
-  };
-  
-  // Check if student has a consultation today
-  const hasConsultationToday = (student: Student) => {
-    const studentConsultations = consultations[student.id] || [];
-    if (studentConsultations.length === 0) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    return studentConsultations.some(consultation => {
-      const consultDate = new Date(consultation.date || consultation.scheduled_date || consultation.consultation_date);
-      return consultDate >= today && consultDate < tomorrow && consultation.status !== 'cancelled';
-    });
-  };
-
-  // Get the most recent consultation for a student
-  const getMostRecentConsultation = (student: Student): Consultation | null => {
-    const studentConsultations = consultations[student.id] || [];
-    if (studentConsultations.length === 0) {
-      return null;
-    }
-
-    // Sort by date to get most recent
-    return [...studentConsultations].sort(
-      (a, b) => new Date(b.date || b.scheduled_date || b.consultation_date).getTime() - 
-              new Date(a.date || a.scheduled_date || a.consultation_date).getTime()
-    )[0];
-  };
 
   // Format the last consultation date
   const formatLastConsultation = (student: Student): string => {
@@ -201,7 +152,7 @@ const StudentTableView: React.FC<StudentTableViewProps> = ({
     try {
       // Update the student's attendance status directly
       await api.students.update(student.id, {
-        lastAttendanceStatus: newStatus
+        last_attendance_status: newStatus
       });
 
       // Clear the entire cache to ensure fresh data
@@ -301,7 +252,7 @@ const StudentTableView: React.FC<StudentTableViewProps> = ({
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {students.map((student) => {
-              const recentConsultation = getMostRecentConsultation(student);
+              const recentConsultation = getMostRecentConsultation(student, consultations);
               // Use the student's lastAttendanceStatus or default to 'scheduled'
               const attendanceStatus = student.lastAttendanceStatus || 'scheduled';
               const attendanceDisplay = getAttendanceDisplay(attendanceStatus);
@@ -320,21 +271,21 @@ const StudentTableView: React.FC<StudentTableViewProps> = ({
                         </span>
                         {/* New/Upcoming consultation indicators */}
                         {isNewStudent(student) && (
-                          <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-xs px-1.5 py-0 flex items-center gap-1">
+                          <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-xs px-2 py-0.5 flex items-center gap-1">
                             <Sparkles className="h-3 w-3" />
                             New
                           </Badge>
                         )}
-                        {hasConsultationToday(student) && (
-                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 text-xs px-1.5 py-0 flex items-center gap-1 animate-pulse">
+                        {hasConsultationToday(student, consultations) && (
+                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 text-xs px-2 py-0.5 flex items-center gap-1 animate-pulse">
                             <CalendarCheck className="h-3 w-3" />
                             Today
                           </Badge>
                         )}
-                        {!hasConsultationToday(student) && hasUpcomingConsultation(student) && (
-                          <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-xs px-1.5 py-0 flex items-center gap-1">
+                        {!hasConsultationToday(student, consultations) && hasUpcomingConsultation(student, consultations) && (
+                          <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-xs px-2 py-0.5 flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            Soon
+                            Upcoming
                           </Badge>
                         )}
                       </div>
@@ -379,7 +330,7 @@ const StudentTableView: React.FC<StudentTableViewProps> = ({
                           </Badge>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuContent align="start" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuLabel>Set Job Search Status</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => updateJobSearchStatus(student, 'Not Started')}>
@@ -443,7 +394,7 @@ const StudentTableView: React.FC<StudentTableViewProps> = ({
                           )}
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuContent align="start" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuLabel>Set Attendance Status</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => updateAttendanceStatus(student, 'scheduled')}>
@@ -493,7 +444,7 @@ const StudentTableView: React.FC<StudentTableViewProps> = ({
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuItem onClick={() => onStudentClick(student)}>
                           <Eye className="h-4 w-4 mr-2" />
                           View Details

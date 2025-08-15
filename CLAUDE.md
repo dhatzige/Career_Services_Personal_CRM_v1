@@ -3,7 +3,7 @@
 ## 🚀 Project Overview
 A comprehensive CRM system for university career services to track student consultations, manage career development, and analyze engagement patterns.
 
-**Current Version**: 0.12.2 (August 12, 2025)  
+**Current Version**: 0.13.1 (August 14, 2025)  
 **Architecture**: Hybrid - SQLite for data, Supabase for auth ONLY  
 **Stack**: React + TypeScript + Vite (Frontend), Express + TypeScript (Backend)
 
@@ -14,14 +14,33 @@ A comprehensive CRM system for university career services to track student consu
 
 ## 📍 Current Status
 
-### Just Completed (August 12, 2025 - v0.12.2 Analytics & CORS Fixes)
+### Just Completed (August 14, 2025 - v0.13.1 Code Consolidation & UI/UX Polish)
 
-#### 🔧 Critical Production Fixes
-- ✅ **Fixed Analytics consultations** - Removed SQLite JSON aggregation, fetch consultations separately
-- ✅ **Fixed CORS for all Vercel deployments** - Uses regex pattern `/^https:\/\/project-[a-z0-9]+-dimitris-projects-74509e82\.vercel\.app$/`
-- ✅ **Fixed server listening** - Backend listens on `0.0.0.0:8080` in production for Fly.io
-- ✅ **Bypassed caching** - Ensured fresh data with consultations in studentController
-- ✅ **Fixed hardcoded text** - Changed "3+ meetings" to "1+ meetings" in Analytics
+#### 🎯 Code Quality & Consolidation
+- ✅ **Code Duplication Eliminated** - Created shared `studentHelpers.ts` utility functions
+- ✅ **Dropdown Status Updates Fixed** - Corrected API field mapping (camelCase ↔ snake_case)
+- ✅ **Light Mode Dropdown Visibility** - Fixed invisible dropdowns with proper styling
+- ✅ **Chart Tooltip Issues Resolved** - Theme-aware tooltips, no more white boxes
+- ✅ **Chart Text Truncation Fixed** - Increased margins and container heights
+- ✅ **E2E Testing Complete** - Comprehensive Playwright verification of all features
+
+#### 🛠️ Technical Fixes Applied
+- **API Field Mapping**: Fixed `jobSearchStatus` → `job_search_status` in StudentTableView
+- **Shared Functions**: Moved duplicate logic to `/src/utils/studentHelpers.ts`
+- **Dropdown Styling**: Added `bg-white dark:bg-gray-800 border` classes for visibility
+- **Chart Tooltips**: Implemented theme-aware styling with `useTheme` hook
+- **Chart Spacing**: Increased margins and heights for better text display
+
+### Previous Session (August 14, 2025 - v0.13.0 E2E Testing, Security & Data Management Overhaul)
+
+#### 🔧 Major System Improvements
+- ✅ **Calendly Integration Fixed** - Real meeting sync working (da.chatzigeorgiou@gmail.com at 11:00 AM)
+- ✅ **Complete E2E Testing** - All features tested with Playwright, zero crashes
+- ✅ **Security Hardening** - Fixed Supabase RLS issues, removed API key exposure
+- ✅ **Data Management Overhaul** - Fixed CSV exports, proper database field alignment
+- ✅ **Settings Page Optimization** - Removed redundant sections, fixed functionality
+- ✅ **Analytics Chart Improvements** - Fixed text truncation, removed "Unknown" data
+- ✅ **Repository Security** - Cleaned git history, safe for public release
 
 ### Previous Session (August 12, 2025 - Production Deployment)
 
@@ -215,13 +234,15 @@ cd backend && sqlite3 data/students.db < src/database/migrations/[migration].sql
 
 ## 🐛 System Health
 
-1. ✅ **Sentry Status**: ZERO ERRORS (confirmed Aug 6, 2025)
-2. ✅ **ESLint Status**: 4 errors, 264 warnings (down from 811)
-3. ✅ **TypeScript**: All compilation successful
-4. ✅ **Dark Mode**: Fully functional with unified theme management
-5. ✅ **Performance**: Optimized with caching and lazy loading
-6. ✅ **Analytics**: Advanced dashboard with AI insights operational
-7. ✅ **Table View**: Dropdowns now save properly after complete rewrite
+1. ✅ **Sentry Status**: ZERO ERRORS (confirmed Aug 14, 2025)
+2. ✅ **Security**: All critical Supabase RLS issues resolved
+3. ✅ **TypeScript**: All compilation successful, no errors
+4. ✅ **E2E Testing**: All features tested and working perfectly
+5. ✅ **Calendly Integration**: Real meetings syncing correctly
+6. ✅ **Data Management**: CSV exports fixed, proper field alignment
+7. ✅ **Analytics**: Charts improved, no truncated text or unknown data
+8. ✅ **Settings**: Streamlined interface, redundant sections removed
+9. ✅ **Repository**: Git history cleaned, safe for public showcase
 
 ## 🎯 Best Practices
 

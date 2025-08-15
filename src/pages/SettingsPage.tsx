@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, Bell, Shield, Palette, Save, Download, Upload, Trash2, Database, Lock, Key, Sparkles, Calendar, Zap, Users } from 'lucide-react';
+import { User, Bell, Shield, Palette, Save, Download, Upload, Trash2, Database, Lock, Key, Sparkles, Calendar, Zap, Users, AlertCircle } from 'lucide-react';
 import { activityLogger } from '../utils/activityLog';
 import { useAuth } from '../contexts/CleanSupabaseAuth';
 import { useTheme } from '../contexts/ThemeContext';
@@ -21,12 +21,6 @@ const SettingsPage: React.FC = () => {
       email: user?.email || '',
       phone: user?.user_metadata?.phone || '',
     },
-    notifications: {
-      emailNotifications: true,
-      pushNotifications: false,
-      weeklyReports: true,
-      studentUpdates: true,
-    },
     security: {
       sessionTimeout: 30,
       autoLogout: true,
@@ -36,10 +30,6 @@ const SettingsPage: React.FC = () => {
       language: 'en',
       highContrast: false,
       reducedMotion: false,
-    },
-    ai: {
-      claudeApiKey: '',
-      enableAIReports: true,
     },
     calendly: {
       calendlyUrl: localStorage.getItem('calendlyUrl') || '',
@@ -56,16 +46,20 @@ const SettingsPage: React.FC = () => {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'team', label: 'Team', icon: Users },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'calendly', label: 'Calendly', icon: Calendar },
     { id: 'integrations', label: 'Integrations', icon: Zap },
-    { id: 'ai', label: 'AI Settings', icon: Sparkles },
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'data', label: 'Data Management', icon: Database }
   ];
 
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
+
+  // Update URL when tab changes
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    window.history.pushState(null, '', `/settings?tab=${tabId}`);
+  };
 
   // Update active tab when URL parameter changes
   useEffect(() => {
@@ -89,17 +83,10 @@ const SettingsPage: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      // Save general settings to localStorage
-      const { ai, ...otherSettings } = settings;
-      localStorage.setItem('app_settings', JSON.stringify(otherSettings));
+      // Save general settings to localStorage  
+      localStorage.setItem('app_settings', JSON.stringify(settings));
       
-      // Save Claude API key to backend if provided
-      if (ai.claudeApiKey) {
-        // TODO: Implement backend endpoint to store API keys securely
-        console.warn('Claude API key storage not yet implemented on backend');
-      }
-      
-      console.log('Settings saved:', otherSettings);
+      // Settings saved successfully
       alert('Settings saved successfully!');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -160,17 +147,6 @@ const SettingsPage: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white cursor-not-allowed"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    User ID
-                  </label>
-                  <input
-                    type="text"
-                    value={user?.id || ''}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white cursor-not-allowed font-mono text-sm"
-                  />
-                </div>
               </div>
               <div className="mt-6">
                 <a
@@ -190,43 +166,6 @@ const SettingsPage: React.FC = () => {
       case 'team':
         return <TeamManagement />;
 
-      case 'notifications':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Notification Preferences</h3>
-              <div className="space-y-4">
-                {Object.entries(settings.notifications).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {key === 'emailNotifications' && 'Receive email notifications for important updates'}
-                        {key === 'pushNotifications' && 'Browser push notifications for real-time alerts'}
-                        {key === 'weeklyReports' && 'Weekly summary reports via email'}
-                        {key === 'studentUpdates' && 'Notifications when students are updated'}
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={value}
-                        onChange={(e) => setSettings({
-                          ...settings,
-                          notifications: { ...settings.notifications, [key]: e.target.checked }
-                        })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
 
       case 'security':
         return (
@@ -433,7 +372,23 @@ const SettingsPage: React.FC = () => {
 
       case 'data':
         return (
-          <div className="space-y-6">
+          <div className="space-y-8">
+            {/* Warning Banner */}
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+              <div className="flex items-start">
+                <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400 mr-3 mt-0.5" />
+                <div>
+                  <h3 className="text-lg font-medium text-red-900 dark:text-red-100 mb-2">
+                    ⚠️ Data Management - Use with Caution
+                  </h3>
+                  <p className="text-red-700 dark:text-red-200 text-sm">
+                    These operations directly affect your database. Always backup your data before importing.
+                    Bulk operations cannot be easily undone.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <ImportExportSection />
           </div>
         );
@@ -543,7 +498,7 @@ const SettingsPage: React.FC = () => {
             <select
               id="tab-select"
               value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value)}
+              onChange={(e) => handleTabChange(e.target.value)}
               className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {tabs.map(tab => (
@@ -563,7 +518,7 @@ const SettingsPage: React.FC = () => {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center whitespace-nowrap space-x-1 lg:space-x-2 py-3 lg:py-4 px-2 lg:px-3 border-b-2 font-medium text-xs lg:text-sm transition-colors ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600 dark:text-blue-400'

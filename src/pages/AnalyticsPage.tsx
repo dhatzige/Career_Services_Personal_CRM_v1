@@ -7,6 +7,7 @@ import { Student } from '../types/student';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import EngagementMetrics from '../components/analytics/EngagementMetrics';
 import AIInsights from '../components/analytics/AIInsights';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface DateRange {
   start: Date;
@@ -33,6 +34,35 @@ const COLORS = {
   gray: '#6B7280',
 };
 
+// Program name abbreviation logic for cleaner charts
+const createAbbreviation = (name: string): { short: string; full: string } => {
+  if (!name) return { short: 'N/A', full: 'Not Specified' };
+  
+  const isAlumni = name.includes('(Alumni)');
+  const cleanName = name.replace(' (Alumni)', '');
+  
+  const abbreviations: Record<string, string> = {
+    "Masters in Tourism Management": "MTM",
+    "MS in Industrial Organizational Psychology": "MS I/O Psych",
+    "Industrial Organizational Psychology": "I/O Psychology", 
+    "Business Administration": "Bus. Admin",
+    "Business - Hospitality": "B-H",
+    "Computer Science": "CS",
+    "Psychology": "Psychology",
+    "MBA": "MBA",
+    "Master's Program": "Master's",
+    "Bachelor's Program": "Bachelor's"
+  };
+
+  let short = abbreviations[cleanName] || cleanName;
+  
+  if (isAlumni) {
+    short = short + ' (Alum.)';
+  }
+  
+  return { short, full: name };
+};
+
 const AnalyticsPage: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +70,19 @@ const AnalyticsPage: React.FC = () => {
   const [showRangeDropdown, setShowRangeDropdown] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>('all');
+  const { actualTheme } = useTheme();
+
+  // Theme-aware tooltip styles
+  const getTooltipStyle = () => ({
+    backgroundColor: actualTheme === 'dark' ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+    border: `1px solid ${actualTheme === 'dark' ? '#374151' : '#D1D5DB'}`,
+    borderRadius: '0.5rem',
+    color: actualTheme === 'dark' ? '#E5E7EB' : '#1F2937'
+  });
+
+  const getTooltipLabelStyle = () => ({
+    color: actualTheme === 'dark' ? '#E5E7EB' : '#1F2937'
+  });
 
   useEffect(() => {
     fetchData();
@@ -51,10 +94,7 @@ const AnalyticsPage: React.FC = () => {
       const response = await api.students.list();
       // Handle both array response and object with data property
       const studentData = Array.isArray(response) ? response : (response.data || []);
-      console.log('Analytics: Fetched students:', studentData.length);
-      if (studentData.length > 0 && studentData[0].consultations) {
-        console.log('First student consultations:', studentData[0].consultations);
-      }
+      // Analytics data loaded successfully
       setStudents(studentData);
     } catch (error) {
       console.error('Failed to fetch analytics data:', error);
@@ -113,11 +153,17 @@ const AnalyticsPage: React.FC = () => {
         const date = new Date(c.date);
         return date >= selectedRange.start && date <= selectedRange.end;
       }).length;
-      programConsultations[s.specificProgram || 'Unknown'] = (programConsultations[s.specificProgram || 'Unknown'] || 0) + count;
+      const program = s.specificProgram || s.major;
+      if (program) {
+        const { short } = createAbbreviation(program);
+        programConsultations[short] = (programConsultations[short] || 0) + count;
+      }
     });
     
-    const topProgram = Object.entries(programConsultations)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
+    // Get the abbreviated program name for top performer
+    const topProgramEntry = Object.entries(programConsultations)
+      .sort(([,a], [,b]) => b - a)[0];
+    const topProgram = topProgramEntry ? topProgramEntry[0] : 'N/A';
     
     return {
       totalStudents,
@@ -190,10 +236,14 @@ const AnalyticsPage: React.FC = () => {
     const programs: Record<string, { students: number; consultations: number; attendance: number }> = {};
     
     filteredStudents.forEach(s => {
-      if (!programs[s.specificProgram]) {
-        programs[s.specificProgram] = { students: 0, consultations: 0, attendance: 0 };
+      const program = s.specificProgram || s.major;
+      if (!program) return; // Skip students without programs
+      
+      const { short } = createAbbreviation(program);
+      if (!programs[short]) {
+        programs[short] = { students: 0, consultations: 0, attendance: 0 };
       }
-      programs[s.specificProgram].students++;
+      programs[short].students++;
       
       const programConsultations = (s.consultations || []).filter(c => {
         if (!c || !c.date) return false;
@@ -201,8 +251,8 @@ const AnalyticsPage: React.FC = () => {
         return date >= selectedRange.start && date <= selectedRange.end;
       });
       
-      programs[s.specificProgram].consultations += programConsultations.length;
-      programs[s.specificProgram].attendance += programConsultations.filter(c => c.status === 'attended').length;
+      programs[short].consultations += programConsultations.length;
+      programs[short].attendance += programConsultations.filter(c => c.status === 'attended').length;
     });
     
     return Object.entries(programs)
@@ -443,18 +493,14 @@ const AnalyticsPage: React.FC = () => {
         {/* Consultation Trends */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Consultation Trends</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={400}>
             <AreaChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis dataKey="date" stroke="#6B7280" />
               <YAxis stroke="#6B7280" />
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(31, 41, 55, 0.95)', 
-                  border: '1px solid #374151',
-                  borderRadius: '0.5rem'
-                }}
-                labelStyle={{ color: '#E5E7EB' }}
+                contentStyle={getTooltipStyle()}
+                labelStyle={getTooltipLabelStyle()}
               />
               <Area 
                 type="monotone" 
@@ -490,24 +536,22 @@ const AnalyticsPage: React.FC = () => {
         {/* Consultation Types Performance */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Consultation Type Performance</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={consultationTypeData}>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={consultationTypeData} margin={{ bottom: 100, left: 20, right: 20, top: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis 
                 dataKey="type" 
                 stroke="#6B7280"
                 angle={-45}
                 textAnchor="end"
-                height={80}
+                height={120}
+                interval={0}
+                tick={{ fontSize: 9, fill: '#6B7280' }}
               />
               <YAxis stroke="#6B7280" />
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(31, 41, 55, 0.95)', 
-                  border: '1px solid #374151',
-                  borderRadius: '0.5rem'
-                }}
-                labelStyle={{ color: '#E5E7EB' }}
+                contentStyle={getTooltipStyle()}
+                labelStyle={getTooltipLabelStyle()}
               />
               <Bar dataKey="total" fill={COLORS.primary} name="Total" />
               <Bar dataKey="attended" fill={COLORS.success} name="Attended" />
@@ -518,10 +562,10 @@ const AnalyticsPage: React.FC = () => {
         {/* Program Performance Radar */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Program Performance</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <RadarChart data={programPerformanceData}>
+          <ResponsiveContainer width="100%" height={400}>
+            <RadarChart data={programPerformanceData} margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
               <PolarGrid stroke="#374151" />
-              <PolarAngleAxis dataKey="program" stroke="#6B7280" />
+              <PolarAngleAxis dataKey="program" stroke="#6B7280" tick={{ fontSize: 11, fill: '#6B7280' }} />
               <PolarRadiusAxis stroke="#6B7280" />
               <Radar 
                 name="Students" 
@@ -545,12 +589,8 @@ const AnalyticsPage: React.FC = () => {
                 fillOpacity={0.6} 
               />
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(31, 41, 55, 0.95)', 
-                  border: '1px solid #374151',
-                  borderRadius: '0.5rem'
-                }}
-                labelStyle={{ color: '#E5E7EB' }}
+                contentStyle={getTooltipStyle()}
+                labelStyle={getTooltipLabelStyle()}
               />
             </RadarChart>
           </ResponsiveContainer>

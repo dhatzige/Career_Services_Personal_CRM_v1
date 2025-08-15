@@ -17,7 +17,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
-import api from '../services/api';
+import { api } from '../services/apiClient';
 
 interface Note {
   id: string;
@@ -169,7 +169,7 @@ export default function NotesSystem({ studentId, studentName }: NotesSystemProps
     if (!confirm('Are you sure you want to delete this note?')) return;
 
     try {
-      await api.delete(`/notes/${noteId}`);
+      await api.notes.delete(noteId);
       await fetchNotes();
     } catch (error) {
       console.error('Error deleting note:', error);

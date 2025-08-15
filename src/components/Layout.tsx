@@ -146,11 +146,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Dashboard', href: '/', icon: Home, shortcut: 'Alt+1' },
     { name: "Today's Schedule", href: '/today', icon: Clock, shortcut: 'Alt+2' },
     { name: 'Students', href: '/students', icon: Users, shortcut: 'Alt+3' },
-    { name: 'Career Services', href: '/career', icon: Briefcase, shortcut: 'Alt+4' },
-    { name: 'Calendar', href: '/calendar', icon: Calendar, shortcut: 'Alt+5' },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3, shortcut: 'Alt+6' },
-    { name: 'Reports', href: '/reports', icon: FileText, shortcut: 'Alt+7' },
-    { name: 'Settings', href: '/settings', icon: Settings, shortcut: 'Alt+8' },
+    { name: 'Calendar', href: '/calendar', icon: Calendar, shortcut: 'Alt+4' },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3, shortcut: 'Alt+5' },
+    { name: 'Settings', href: '/settings', icon: Settings, shortcut: 'Alt+6' },
   ];
 
   const shortcuts = [

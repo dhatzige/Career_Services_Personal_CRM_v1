@@ -41,9 +41,10 @@ export default function CalendarPage() {
     try {
       setLoading(true);
       const response = await api.get('/calendar/meetings/upcoming');
-      // The api.get already returns res.data, and backend sends { success: true, data: meetings }
-      // So response is the full object with success and data properties
-      setUpcomingMeetings(response?.data || response || []);
+      // Backend sends { success: true, meetings: [...] }
+      const meetings = response?.meetings || response?.data || response || [];
+      const meetingsArray = Array.isArray(meetings) ? meetings : [];
+      setUpcomingMeetings(meetingsArray);
     } catch (error) {
       console.error('Failed to load meetings:', error);
       // Don't show error toast for now, just set empty meetings
@@ -99,7 +100,9 @@ export default function CalendarPage() {
 
   // Filter meetings based on search and date filters
   const filteredMeetings = useMemo(() => {
-    let filtered = [...upcomingMeetings];
+    // Ensure upcomingMeetings is always an array
+    const safeUpcomingMeetings = Array.isArray(upcomingMeetings) ? upcomingMeetings : [];
+    let filtered = [...safeUpcomingMeetings];
     
     // Apply search filter
     if (searchQuery) {

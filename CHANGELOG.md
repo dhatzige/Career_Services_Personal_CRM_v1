@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2025-08-14 (E2E Testing, Security & Data Management Overhaul)
+
+### 🎯 **Major System Improvements**
+- **Complete E2E Testing**: Conducted comprehensive testing of all features with Playwright
+- **Calendly Integration Fixed**: Real meeting sync working for da.chatzigeorgiou@gmail.com
+- **Security Hardening**: Fixed all critical Supabase RLS issues and removed API key exposure
+- **Data Management Overhaul**: Fixed CSV exports with proper database field alignment
+- **Settings Page Optimization**: Removed redundant sections, streamlined interface
+
+### ✅ **Fixed Issues**
+- **CSV Export Corruption**: Fixed [object Object] serialization, now shows proper data
+- **LinkedIn URL Missing**: Fixed field mapping in exports 
+- **Chart Text Truncation**: Implemented abbreviation logic for better readability
+- **Analytics Unknown Data**: Filtered out students without programs from charts
+- **Calendar Page Crashes**: Fixed upcomingMeetings iteration errors
+- **Students JSON Parsing**: Added safe JSON parsing to prevent crashes
+- **Settings URL Persistence**: Tabs now maintain state after refresh
+
+### 🛡️ **Security Improvements**
+- **Supabase RLS**: Fixed all critical Row Level Security issues
+- **API Key Exposure**: Removed from git history, repository now safe for public release
+- **User ID Removed**: No longer displayed in Settings for better security
+- **Database Functions**: Fixed search_path security warnings
+- **Git History Cleaned**: Used git-filter-repo to remove sensitive data
+
+### 🎨 **UI/UX Enhancements**
+- **Today's Schedule**: Simplified to clean view-only format
+- **Analytics Charts**: Fixed text truncation with smart abbreviations
+- **Export Interface**: Streamlined from 4 fragmented exports to 2 logical ones
+- **Settings Tabs**: Removed Notifications and AI Settings (redundant)
+- **Data Management**: Added proper warnings and current database structure docs
+
+### 🔧 **Technical Improvements**
+- **API Endpoints**: Fixed double "/api/" URL issues in import/export
+- **CSV Template**: Updated to match current 29-field database structure
+- **JSON Serialization**: Proper handling of complex data types in exports
+- **Error Handling**: Enhanced with proper fallbacks and user feedback
+- **Feature Dependencies**: Verified all cross-component integrations working
+
+### 📊 **Data Structure Updates**
+- **Export Fields**: Now includes notes_count, latest_note, consultations_count
+- **Database Alignment**: CSV imports/exports match actual SQLite schema
+- **Field Validation**: Updated guidelines for all current database constraints
+- **JSON Arrays**: Proper documentation for career_interests, tags, etc.
+
 ## [Deployed] - 2025-08-12
 
 ### 🚀 Production Deployment

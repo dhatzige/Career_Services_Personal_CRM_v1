@@ -1,6 +1,7 @@
 import { Calendar, Mail, Briefcase, GraduationCap, AlertCircle, Phone, MapPin, Building, Linkedin, FileText, Clock, Sparkles, CalendarCheck } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { isNewStudent, hasUpcomingConsultation, hasConsultationToday } from '@/utils/studentHelpers';
 import type { Student } from '@/types';
 
 interface StudentCardProps {
@@ -10,40 +11,6 @@ interface StudentCardProps {
 
 export default function StudentCard({ student, onClick }: StudentCardProps) {
   const hasHighNoShows = student.no_show_count && student.no_show_count >= 3;
-  
-  // Check if student was recently added (within last 7 days)
-  const isNewStudent = () => {
-    const createdDate = student.created_at || student.date_added;
-    if (!createdDate) return false;
-    const daysSinceCreated = Math.floor((new Date().getTime() - new Date(createdDate).getTime()) / (1000 * 3600 * 24));
-    return daysSinceCreated <= 7;
-  };
-  
-  // Check for upcoming consultations (within next 7 days)
-  const hasUpcomingConsultation = () => {
-    if (!student.consultations || student.consultations.length === 0) return false;
-    const now = new Date();
-    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
-    return student.consultations.some(consultation => {
-      const consultDate = new Date(consultation.date || consultation.scheduled_date);
-      return consultDate >= now && consultDate <= weekFromNow && consultation.status !== 'cancelled';
-    });
-  };
-  
-  // Check if student has a consultation today
-  const hasConsultationToday = () => {
-    if (!student.consultations || student.consultations.length === 0) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    return student.consultations.some(consultation => {
-      const consultDate = new Date(consultation.date || consultation.scheduled_date);
-      return consultDate >= today && consultDate < tomorrow && consultation.status !== 'cancelled';
-    });
-  };
   
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
@@ -105,19 +72,19 @@ export default function StudentCard({ student, onClick }: StudentCardProps) {
                 {student.first_name} {student.last_name}
               </CardTitle>
               {/* New/Upcoming consultation indicators */}
-              {isNewStudent() && (
+              {isNewStudent(student) && (
                 <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-xs px-2 py-0.5 flex items-center gap-1">
                   <Sparkles className="h-3 w-3" />
                   New
                 </Badge>
               )}
-              {hasConsultationToday() && (
+              {hasConsultationToday(student) && (
                 <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 text-xs px-2 py-0.5 flex items-center gap-1 animate-pulse">
                   <CalendarCheck className="h-3 w-3" />
                   Today
                 </Badge>
               )}
-              {!hasConsultationToday() && hasUpcomingConsultation() && (
+              {!hasConsultationToday(student) && hasUpcomingConsultation(student) && (
                 <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-xs px-2 py-0.5 flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
                   Upcoming
