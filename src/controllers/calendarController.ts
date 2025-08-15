@@ -3,6 +3,7 @@ import { ConsultationModel } from '../models/Consultation';
 import { StudentModel } from '../models/Student';
 // import { UserModel } from '../models/User'; // Removed - using Supabase auth
 import { logAuditEvent } from '../middleware/security';
+import { CalendlyService } from '../services/calendlyService';
 import crypto from 'crypto';
 
 // Verify Calendly webhook signature
@@ -69,26 +70,119 @@ export const handleCalendlyWebhook = async (req: Request, res: Response): Promis
   }
 };
 
+// NEW: Manual sync function for development
+export const syncCalendlyEvents = async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log('🔄 Starting Calendly events sync...');
+    
+    // Get current user first to get their URI
+    const userInfo = await CalendlyService.getCurrentUser() as any;
+    const userUri = userInfo.resource.uri;
+    
+    console.log(`🔍 Fetching events for user: ${userUri}`);
+    
+    // Get events from yesterday forward (to catch meetings from yesterday)
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    const eventsResponse = await CalendlyService.getScheduledEvents({
+      user: userUri,
+      min_start_time: `${yesterday}T00:00:00Z`,
+      max_start_time: `${nextWeek}T23:59:59Z`,
+      status: 'active'
+    });
+    
+    const events = (eventsResponse as any).collection || [];
+    console.log(`📅 Found ${events.length} scheduled events`);
+    
+    let syncedCount = 0;
+    
+    for (const event of events) {
+      try {
+        // Get invitees for this event
+        const eventId = event.uri.split('/').pop();
+        const inviteesResponse = await CalendlyService.getEventInvitees(eventId);
+        const invitees = (inviteesResponse as any).collection || [];
+        
+        for (const invitee of invitees) {
+          const eventData = {
+            email: invitee.email,
+            name: invitee.name,
+            scheduled_event: {
+              start_time: event.start_time,
+              end_time: event.end_time,
+              event_type: {
+                name: event.event_type,
+                uri: event.event_type
+              },
+              location: event.location,
+              uri: event.uri,
+              calendly_uuid: event.uri
+            }
+          };
+          
+          await handleInviteeCreated(eventData, req as any, true); // true = skip webhook verification
+          syncedCount++;
+        }
+      } catch (eventError) {
+        console.error(`Error processing event ${event.uri}:`, eventError);
+      }
+    }
+    
+    console.log(`✅ Synced ${syncedCount} events from Calendly`);
+    res.json({
+      success: true,
+      message: `Successfully synced ${syncedCount} events from Calendly`,
+      syncedCount
+    });
+    
+  } catch (error) {
+    console.error('Calendly sync error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to sync Calendly events',
+      details: error.response?.data || error.message
+    });
+  }
+};
+
 // Handle when a new meeting is scheduled
-async function handleInviteeCreated(payload: any, req: any): Promise<void> {
+async function handleInviteeCreated(payload: any, req: any, skipWebhookVerification: boolean = false): Promise<void> {
   try {
     const { email, name, scheduled_event } = payload;
-    const { start_time, end_time, event_type, location } = scheduled_event;
+    const { start_time, end_time, event_type, location, calendly_uuid } = scheduled_event;
+    
+    console.log(`📝 Processing invitee: ${name} (${email}) for event at ${start_time}`);
+    
+    // Check if this consultation already exists
+    const existingConsultation = await ConsultationModel.findByCalendlyId(calendly_uuid || scheduled_event.uri);
+    if (existingConsultation) {
+      console.log(`⏭️  Consultation already exists for Calendly event ${calendly_uuid}`);
+      return;
+    }
     
     // Find or create student
     let student = await StudentModel.findByEmail(email);
     if (!student) {
-      // Create new student from Calendly data
+      console.log(`👤 Creating new student: ${name} (${email})`);
       const [firstName, ...lastNameParts] = name.split(' ');
-      const lastName = lastNameParts.join(' ');
+      const lastName = lastNameParts.join(' ') || '';
       
       const studentData = {
         firstName,
         lastName,
         email,
-        source: 'calendly',
-        status: 'active',
-        jobSearchStatus: 'Not Started' as const  // Explicitly set default job search status with proper typing
+        phone: '',
+        yearOfStudy: null, // Let admin set this manually
+        programType: null, // Let admin set this manually
+        specificProgram: null,
+        major: null,
+        jobSearchStatus: 'Not Started' as const,
+        careerInterests: [],
+        targetIndustries: [],
+        targetLocations: [],
+        tags: [],
+        quickNote: null
       };
       
       student = await StudentModel.create(studentData);
@@ -97,23 +191,28 @@ async function handleInviteeCreated(payload: any, req: any): Promise<void> {
     // Create consultation record
     const consultationData = {
       studentId: student.id,
-      date: new Date(start_time),
-      duration: Math.round((new Date(end_time).getTime() - new Date(start_time).getTime()) / 60000),
-      type: event_type.name.includes('career') ? 'Career Counseling' : 'Academic Advising',
-      location: location?.location || 'Online',
-      notes: `Scheduled via Calendly: ${event_type.name}\nCalendly URI: ${scheduled_event.uri}`,
-      topic: event_type.name,
-      attended: false,
-      followUpRequired: false,
-      needsReview: true  // Flag to indicate consultation type needs manual review
+      type: 'Career Counseling',
+      date: new Date(start_time).toISOString(),
+      duration: Math.round((new Date(end_time).getTime() - new Date(start_time).getTime()) / (1000 * 60)), // minutes
+      status: 'scheduled',
+      location: location?.join_url || 'Calendly meeting',
+      notes: `Scheduled via Calendly - Event type: ${event_type?.name || 'Unknown'}`,
+      calendlyUri: calendly_uuid || scheduled_event.uri,
+      attended: false
     };
     
-    await ConsultationModel.create(consultationData);
+    const consultation = await ConsultationModel.create(consultationData);
     
-    logAuditEvent(req, 'CALENDLY_MEETING_CREATED', 'calendar', true, {
-      studentId: student.id,
-      eventUri: scheduled_event.uri
-    });
+    console.log(`✅ Created consultation ${consultation.id} for student ${student.id}`);
+    
+    if (!skipWebhookVerification) {
+      logAuditEvent(req, 'CALENDLY_MEETING_CREATED', 'calendar', true, {
+        studentId: student.id,
+        consultationId: consultation.id,
+        meetingTime: start_time
+      });
+    }
+    
   } catch (error) {
     console.error('Error handling invitee created:', error);
     throw error;
@@ -123,21 +222,27 @@ async function handleInviteeCreated(payload: any, req: any): Promise<void> {
 // Handle when a meeting is canceled
 async function handleInviteeCanceled(payload: any, req: any): Promise<void> {
   try {
-    const { scheduled_event, reason } = payload;
+    const { scheduled_event } = payload;
+    const calendlyEventId = scheduled_event.uri;
     
-    // Find consultation by Calendly URI
-    const consultation = await ConsultationModel.findByCalendlyUri(scheduled_event.uri);
-    if (consultation) {
-      await ConsultationModel.update(consultation.id, {
-        notes: consultation.notes + `\n\nCanceled via Calendly. Reason: ${reason || 'Not specified'}`,
-        followUpNotes: `Canceled: ${reason || 'Not specified'}`
-      });
-      
-      logAuditEvent(req, 'CALENDLY_MEETING_CANCELED', 'calendar', true, {
-        consultationId: consultation.id,
-        reason
-      });
+    // Find consultation by Calendly event ID
+    const consultation = await ConsultationModel.findByCalendlyId(calendlyEventId);
+    if (!consultation) {
+      console.log(`No consultation found for canceled Calendly event: ${calendlyEventId}`);
+      return;
     }
+    
+    // Update consultation status
+    await ConsultationModel.update(consultation.id, {
+      status: 'cancelled',
+      notes: consultation.notes + ' - Cancelled via Calendly'
+    });
+    
+    logAuditEvent(req, 'CALENDLY_MEETING_CANCELLED', 'calendar', true, {
+      consultationId: consultation.id,
+      calendlyEventId
+    });
+    
   } catch (error) {
     console.error('Error handling invitee canceled:', error);
     throw error;
@@ -147,265 +252,111 @@ async function handleInviteeCanceled(payload: any, req: any): Promise<void> {
 // Handle when a meeting is rescheduled
 async function handleInviteeRescheduled(payload: any, req: any): Promise<void> {
   try {
-    const { new_invitee, old_invitee } = payload;
-    const { scheduled_event: newEvent } = new_invitee;
-    const { scheduled_event: oldEvent } = old_invitee;
+    const { old_scheduled_event, new_scheduled_event } = payload;
+    const oldEventId = old_scheduled_event.uri;
     
-    // Find consultation by old Calendly URI
-    const consultation = await ConsultationModel.findByCalendlyUri(oldEvent.uri);
-    if (consultation) {
-      // Update with new details
-      await ConsultationModel.update(consultation.id, {
-        date: new Date(newEvent.start_time).toISOString(),
-        duration: Math.round((new Date(newEvent.end_time).getTime() - new Date(newEvent.start_time).getTime()) / 60000),
-        location: newEvent.location?.location || consultation.location,
-        notes: consultation.notes + `\n\nRescheduled via Calendly from ${oldEvent.start_time} to ${newEvent.start_time}\nNew Calendly URI: ${newEvent.uri}`
-      });
-      
-      logAuditEvent(req, 'CALENDLY_MEETING_RESCHEDULED', 'calendar', true, {
-        consultationId: consultation.id,
-        oldTime: oldEvent.start_time,
-        newTime: newEvent.start_time
-      });
+    // Find consultation by old Calendly event ID
+    const consultation = await ConsultationModel.findByCalendlyId(oldEventId);
+    if (!consultation) {
+      console.log(`No consultation found for rescheduled Calendly event: ${oldEventId}`);
+      return;
     }
+    
+    // Update consultation with new details
+    await ConsultationModel.update(consultation.id, {
+      date: new Date(new_scheduled_event.start_time).toISOString(),
+      duration: Math.round((new Date(new_scheduled_event.end_time).getTime() - new Date(new_scheduled_event.start_time).getTime()) / (1000 * 60)),
+      notes: consultation.notes + ` - Rescheduled from ${old_scheduled_event.start_time} to ${new_scheduled_event.start_time}`
+    });
+    
+    logAuditEvent(req, 'CALENDLY_MEETING_RESCHEDULED', 'calendar', true, {
+      consultationId: consultation.id,
+      oldEventId,
+      newEventId: new_scheduled_event.uri
+    });
+    
   } catch (error) {
     console.error('Error handling invitee rescheduled:', error);
     throw error;
   }
 }
 
-// Get Calendly configuration for frontend
+// Get Calendly configuration
 export const getCalendlyConfig = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Check if API key is configured
-    if (!process.env.CALENDLY_API_KEY || process.env.CALENDLY_API_KEY === 'your_calendly_api_key_here') {
-      // Return fallback configuration
-      const calendlyUrl = process.env.CALENDLY_URL;
-      if (calendlyUrl && calendlyUrl !== 'https://calendly.com/your-username') {
-        res.json({
-          success: true,
-          data: {
-            url: calendlyUrl,
-            eventTypes: process.env.CALENDLY_EVENT_TYPES?.split(',') || ['30-minute-meeting', '60-minute-meeting'],
-            embedOptions: {
-              hideEventTypeDetails: false,
-              hideLandingPageDetails: false,
-              primaryColor: '#2563eb',
-              textColor: '#1f2937',
-              hideGdprBanner: true
-            }
-          }
-        });
-        return;
-      }
-    }
-
-    const { CalendlyService } = await import('../services/calendlyService');
-    
-    // Get current user info
-    const userInfo = await CalendlyService.getCurrentUser() as any;
-    const user = userInfo.resource;
-    
-    // Get event types
-    const eventTypesData = await CalendlyService.getEventTypes(user.uri) as any;
-    const eventTypes = eventTypesData.collection.map((et: any) => ({
-      uri: et.uri,
-      name: et.name,
-      slug: et.slug,
-      schedulingUrl: et.scheduling_url,
-      duration: et.duration,
-      color: et.color
-    }));
-    
     res.json({
       success: true,
-      data: {
-        user: {
-          name: user.name,
-          email: user.email,
-          schedulingUrl: user.scheduling_url,
-          timezone: user.timezone
-        },
-        eventTypes,
-        embedOptions: {
-          hideEventTypeDetails: false,
-          hideLandingPageDetails: false,
-          primaryColor: '#2563eb',
-          textColor: '#1f2937',
-          hideGdprBanner: true
-        }
+      config: {
+        calendlyUrl: process.env.CALENDLY_URL,
+        webhookConfigured: !!process.env.CALENDLY_WEBHOOK_SECRET,
+        apiKeyConfigured: !!process.env.CALENDLY_API_KEY
       }
     });
   } catch (error) {
-    console.error('Error getting Calendly config:', error);
-    
-    // Fallback to environment variables if API fails
-    const calendlyUrl = process.env.CALENDLY_URL;
-    if (calendlyUrl) {
-      res.json({
-        success: true,
-        data: {
-          url: calendlyUrl,
-          eventTypes: process.env.CALENDLY_EVENT_TYPES?.split(',') || [],
-          embedOptions: {
-            hideEventTypeDetails: false,
-            hideLandingPageDetails: false,
-            primaryColor: '#2563eb',
-            textColor: '#1f2937',
-            hideGdprBanner: true
-          }
-        }
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get Calendly configuration'
-      });
-    }
+    console.error('Error fetching Calendly config:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch Calendly configuration'
+    });
   }
 };
 
-// Get upcoming scheduled meetings
+// Get upcoming meetings from calendar
 export const getUpcomingMeetings = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user.id;
-    const { limit = 10, studentId } = req.query;
+    // Get consultations from current time forward (not past meetings)
+    const now = new Date();
+    const nextMonth = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     
-    // For SQLite schema, we don't have advisor_id or status columns
-    // So we'll get all upcoming consultations
-    const filters: any = {
-      date: {
-        gte: new Date()
-      }
-    };
-    
-    if (studentId) {
-      filters.studentId = parseInt(studentId as string);
-    }
-    
-    const meetings = await ConsultationModel.findAll(filters, parseInt(limit as string));
-    
-    // Get student details for each meeting
-    const meetingsWithStudents = await Promise.all(
-      meetings.map(async (meeting) => {
-        const student = await StudentModel.findById(meeting.studentId);
-        return {
-          ...meeting,
-          student: student ? {
-            id: student.id,
-            name: `${student.firstName} ${student.lastName}`,
-            email: student.email
-          } : null
-        };
-      })
-    );
-    
-    res.json({
-      success: true,
-      data: meetingsWithStudents
+    // Get all consultations and filter to only future meetings
+    const allConsultations = await ConsultationModel.findAll({}, 100);
+    const consultations = allConsultations.filter(c => {
+      const meetingTime = new Date(c.date);
+      // Only show meetings that haven't ended yet (add meeting duration)
+      const meetingEnd = new Date(meetingTime.getTime() + (c.duration || 30) * 60 * 1000);
+      return meetingEnd >= now;
     });
-  } catch (error) {
-    console.error('Error getting upcoming meetings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get upcoming meetings'
-    });
-  }
-};
-
-// Sync past Calendly events (one-time sync)
-export const syncCalendlyEvents = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = (req as any).user.id;
-    const { CalendlyService } = await import('../services/calendlyService');
     
-    // Get current user
-    const userInfo = await CalendlyService.getCurrentUser() as any;
-    const userUri = userInfo.resource.uri;
-    
-    // Get events from the last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const eventsData = await CalendlyService.getScheduledEvents({
-      user: userUri,
-      min_start_time: thirtyDaysAgo.toISOString(),
-      status: 'active'
-    }) as any;
-    
-    let importedCount = 0;
-    let skippedCount = 0;
-    
-    // Process each event
-    for (const event of eventsData.collection) {
+    // Get student details for each consultation
+    const meetings = [];
+    for (const consultation of consultations) {
       try {
-        // Check if consultation already exists
-        const existingConsultation = await ConsultationModel.findByCalendlyUri(event.uri);
-        if (existingConsultation) {
-          skippedCount++;
-          continue;
-        }
-        
-        // Get invitee details
-        const inviteesData = await CalendlyService.getEventInvitees(event.uri) as any;
-        if (inviteesData.collection.length === 0) continue;
-        
-        const invitee = inviteesData.collection[0]; // Take first invitee
-        
-        // Find or create student
-        let student = await StudentModel.findByEmail(invitee.email);
-        if (!student) {
-          const [firstName, ...lastNameParts] = invitee.name.split(' ');
-          const lastName = lastNameParts.join(' ');
-          
-          student = await StudentModel.create({
-            firstName,
-            lastName,
-            email: invitee.email
+        const student = await StudentModel.findById(consultation.studentId);
+        if (student) {
+          meetings.push({
+            id: consultation.id,
+            title: consultation.type || 'Consultation',
+            date: consultation.date,
+            time: new Date(consultation.date).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            }),
+            duration: consultation.duration || 30,
+            student: {
+              id: student.id,
+              name: `${student.firstName} ${student.lastName}`,
+              email: student.email
+            },
+            status: consultation.status || 'scheduled',
+            notes: consultation.notes,
+            location: consultation.location || 'Office'
           });
         }
-        
-        // Create consultation record
-        const consultationData = {
-          studentId: student.id,
-          date: new Date(event.start_time),
-          duration: Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000),
-          type: event.event_type.includes('career') ? 'Career Counseling' : 'Academic Advising',
-          location: event.location?.type || 'Online',
-          notes: `Imported from Calendly: ${event.name}\nCalendly URI: ${event.uri}\nStatus: ${event.status}`,
-          topic: event.name,
-          attended: event.status === 'active' ? false : true,
-          followUpRequired: false
-        };
-        
-        await ConsultationModel.create(consultationData);
-        importedCount++;
-      } catch (eventError) {
-        console.error('Error processing event:', event.uri, eventError);
+      } catch (error) {
+        console.error(`Error loading student for consultation ${consultation.id}:`, error);
       }
     }
     
     res.json({
       success: true,
-      message: `Calendly sync completed. Imported ${importedCount} events, skipped ${skippedCount} existing events.`,
-      data: {
-        status: 'completed',
-        imported: importedCount,
-        skipped: skippedCount,
-        total: eventsData.collection.length
-      }
-    });
-    
-    logAuditEvent(req as any, 'CALENDLY_SYNC_COMPLETED', 'calendar', true, {
-      imported: importedCount,
-      skipped: skippedCount
+      meetings
     });
   } catch (error) {
-    console.error('Error syncing Calendly events:', error);
+    console.error('Error fetching upcoming meetings:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to sync Calendly events',
-      error: error.message
+      error: 'Failed to fetch upcoming meetings'
     });
   }
 };

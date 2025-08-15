@@ -24,26 +24,26 @@ export const getStudentById = asyncHandler(async (req: Request, res: Response) =
 
 export const createStudent = asyncHandler(async (req: Request, res: Response) => {
   try {
-    // Transform snake_case to camelCase for the model
+    // Transform snake_case to camelCase for the model, handling optional fields
     const studentData = {
       firstName: req.body.first_name,
       lastName: req.body.last_name,
       email: req.body.email,
-      phone: req.body.phone,
-      yearOfStudy: req.body.year_of_study,
-      programType: req.body.program_type,
-      specificProgram: req.body.specific_program,
-      major: req.body.major,
-      academicStartDate: req.body.academic_start_date,
-      expectedGraduation: req.body.expected_graduation,
-      careerInterests: req.body.career_interests,
-      linkedinUrl: req.body.linkedin_url,
-      resumeOnFile: req.body.resume_on_file,
-      jobSearchStatus: req.body.job_search_status,
-      targetIndustries: req.body.target_industries,
-      targetLocations: req.body.target_locations,
-      tags: req.body.tags,
-      quickNote: req.body.quick_note
+      phone: req.body.phone || null,
+      yearOfStudy: req.body.year_of_study || null,
+      programType: req.body.program_type || null,
+      specificProgram: req.body.specific_program || null,
+      major: req.body.major || null,
+      academicStartDate: req.body.academic_start_date || null,
+      expectedGraduation: req.body.expected_graduation || null,
+      careerInterests: req.body.career_interests || null,
+      linkedinUrl: req.body.linkedin_url || null,
+      resumeOnFile: req.body.resume_on_file || false,
+      jobSearchStatus: req.body.job_search_status || 'Not Started',
+      targetIndustries: req.body.target_industries || null,
+      targetLocations: req.body.target_locations || null,
+      tags: req.body.tags || null,
+      quickNote: req.body.quick_note || null
     };
     
     const student = await StudentModel.create(studentData);
@@ -90,7 +90,7 @@ export const updateStudent = asyncHandler(async (req: Request, res: Response) =>
     if (req.body.target_locations !== undefined) updates.targetLocations = req.body.target_locations;
     if (req.body.tags !== undefined) updates.tags = req.body.tags;
     if (req.body.quick_note !== undefined) updates.quickNote = req.body.quick_note;
-    if (req.body.lastAttendanceStatus !== undefined) updates.lastAttendanceStatus = req.body.lastAttendanceStatus;
+    if (req.body.last_attendance_status !== undefined) updates.lastAttendanceStatus = req.body.last_attendance_status;
     
     
     const updated = await StudentModel.update(req.params.id, updates);

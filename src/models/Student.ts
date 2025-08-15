@@ -126,10 +126,6 @@ export class StudentModel {
       const consultationsResult = await database.query(consultationsQuery, [student.id]);
       (student as any).consultations = consultationsResult.rows || [];
       
-      // Debug logging
-      if (consultationsResult.rows.length > 0) {
-        console.log(`Student ${student.firstName} has ${consultationsResult.rows.length} consultations`);
-      }
       
       // Get notes
       const notesQuery = `
@@ -145,7 +141,6 @@ export class StudentModel {
       }));
     }
     
-    console.log(`Returning ${students.length} students with consultations included`);
     return students;
   }
 
@@ -226,6 +221,14 @@ export class StudentModel {
       updates.push(`tags = ?`);
       values.push(JSON.stringify(data.tags));
     }
+    if (data.academicStartDate !== undefined) {
+      updates.push(`academic_start_date = ?`);
+      values.push(data.academicStartDate);
+    }
+    if (data.quickNote !== undefined) {
+      updates.push(`quick_note = ?`);
+      values.push(data.quickNote);
+    }
     if (data.noShowCount !== undefined) {
       updates.push(`no_show_count = ?`);
       values.push(data.noShowCount);
@@ -235,7 +238,7 @@ export class StudentModel {
       values.push(data.lastNoShowDate);
     }
     if (data.lastAttendanceStatus !== undefined) {
-      updates.push(`lastAttendanceStatus = ?`);
+      updates.push(`last_attendance_status = ?`);
       values.push(data.lastAttendanceStatus);
     }
 
@@ -327,6 +330,20 @@ export class StudentModel {
   }
 
   /**
+   * Safe JSON parse with fallback
+   */
+  private static safeJsonParse(value: any, fallback: any = []): any {
+    if (!value) return fallback;
+    if (typeof value !== 'string') return fallback;
+    
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  /**
    * Transform database row to Student object
    */
   private static transformFromDb(row: any): StudentType {
@@ -348,20 +365,81 @@ export class StudentModel {
       academicStartDate: row.academic_start_date,
       expectedGraduation: row.expected_graduation,
       avatar: row.avatar,
-      tags: row.tags ? JSON.parse(row.tags) : [],
-      careerInterests: row.career_interests ? JSON.parse(row.career_interests) : [],
+      tags: StudentModel.safeJsonParse(row.tags, []),
+      careerInterests: StudentModel.safeJsonParse(row.career_interests, []),
       linkedinUrl: row.linkedin_url,
       resumeOnFile: Boolean(row.resume_on_file),
       resumeLastUpdated: row.resume_last_updated,
       jobSearchStatus: row.job_search_status,
-      targetIndustries: row.target_industries ? JSON.parse(row.target_industries) : [],
-      targetLocations: row.target_locations ? JSON.parse(row.target_locations) : [],
+      targetIndustries: StudentModel.safeJsonParse(row.target_industries, []),
+      targetLocations: StudentModel.safeJsonParse(row.target_locations, []),
       noShowCount: row.no_show_count || 0,
       lastNoShowDate: row.last_no_show_date,
-      lastAttendanceStatus: row.lastAttendanceStatus || 'scheduled',
+      lastAttendanceStatus: row.last_attendance_status || 'scheduled',
+      quickNote: row.quick_note,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
+  }
+
+  /**
+   * Get all students for CSV export (raw database format)
+   */
+  static async getAllStudentsForExport(): Promise<any[]> {
+    const query = `
+      SELECT 
+        s.id,
+        s.first_name,
+        s.last_name,
+        s.email,
+        s.phone,
+        s.year_of_study,
+        s.program_type,
+        s.specific_program,
+        s.major,
+        s.status,
+        s.date_added,
+        s.last_interaction,
+        s.academic_start_date,
+        s.expected_graduation,
+        s.avatar,
+        s.tags,
+        s.career_interests,
+        s.linkedin_url,
+        s.resume_on_file,
+        s.resume_last_updated,
+        s.job_search_status,
+        s.target_industries,
+        s.target_locations,
+        s.no_show_count,
+        s.last_no_show_date,
+        s.last_attendance_status,
+        s.quick_note,
+        s.date_added as created_at,
+        s.updated_at,
+        -- Include notes count and latest note
+        (SELECT COUNT(*) FROM notes WHERE student_id = s.id) as notes_count,
+        (SELECT content FROM notes WHERE student_id = s.id ORDER BY date_created DESC LIMIT 1) as latest_note,
+        -- Include consultations count and latest consultation
+        (SELECT COUNT(*) FROM consultations WHERE student_id = s.id) as consultations_count,
+        (SELECT type FROM consultations WHERE student_id = s.id ORDER BY consultation_date DESC LIMIT 1) as latest_consultation_type
+      FROM students s
+      ORDER BY s.last_name, s.first_name
+    `;
+    
+    const result = await database.query(query);
+    
+    // Process the raw data to handle JSON fields properly for CSV
+    return result.rows.map(row => ({
+      ...row,
+      // Convert JSON arrays to readable strings for CSV
+      tags: row.tags ? (typeof row.tags === 'string' ? row.tags : JSON.stringify(row.tags)) : '',
+      career_interests: row.career_interests ? (typeof row.career_interests === 'string' ? row.career_interests : JSON.stringify(row.career_interests)) : '',
+      target_industries: row.target_industries ? (typeof row.target_industries === 'string' ? row.target_industries : JSON.stringify(row.target_industries)) : '',
+      target_locations: row.target_locations ? (typeof row.target_locations === 'string' ? row.target_locations : JSON.stringify(row.target_locations)) : '',
+      // Convert boolean to readable string
+      resume_on_file: row.resume_on_file ? 'Yes' : 'No'
+    }));
   }
 
   /**

@@ -36,7 +36,7 @@ export class ConsultationModel {
     
     // Update the student's updated_at timestamp when a new consultation is added
     await database.query(
-      'UPDATE students SET updated_at = datetime("now") WHERE id = $1',
+      "UPDATE students SET updated_at = datetime('now') WHERE id = $1",
       [data.studentId]
     );
     
@@ -199,23 +199,19 @@ export class ConsultationModel {
   }
 
   /**
-   * Get consultations in date range
+   * Find consultation by Calendly event ID
    */
-  static async findByDateRange(startDate: string, endDate: string): Promise<ConsultationType[]> {
-    // For SQLite, we need to ensure we're comparing dates properly
-    // Add time components to ensure we get all consultations for the day
-    const startDateTime = `${startDate} 00:00:00`;
-    const endDateTime = `${endDate} 23:59:59`;
+  static async findByCalendlyId(calendlyEventId: string): Promise<ConsultationType | null> {
+    if (!calendlyEventId) return null;
     
-    const query = `
-      SELECT * FROM consultations 
-      WHERE datetime(consultation_date) >= datetime($1) 
-        AND datetime(consultation_date) <= datetime($2)
-      ORDER BY consultation_date ASC
-    `;
+    const query = 'SELECT * FROM consultations WHERE calendly_uri = $1';
+    const result = await database.query(query, [calendlyEventId]);
     
-    const result = await database.query(query, [startDateTime, endDateTime]);
-    return result.rows.map(row => this.transformFromDb(row));
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return this.transformFromDb(result.rows[0]);
   }
 
   /**

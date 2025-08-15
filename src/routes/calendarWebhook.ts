@@ -8,6 +8,12 @@ const router = Router();
 // Public webhook endpoints (no auth required)
 router.post('/calendly', calendarController.handleCalendlyWebhook);
 
+// Manual sync endpoint for development (no auth required for easier testing)
+router.post('/sync', calendarController.syncCalendlyEvents);
+
+// Get upcoming meetings
+router.get('/meetings/upcoming', calendarController.getUpcomingMeetings);
+
 // Simple webhook setup endpoint (no CSRF/auth for easier setup)
 router.post('/setup', async (req, res) => {
   try {

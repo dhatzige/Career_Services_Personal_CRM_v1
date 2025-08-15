@@ -303,7 +303,9 @@ export const reportController = {
           break;
 
         case 'students':
-          data = await Student.getAllStudents();
+          // Get raw student data for proper CSV export
+          const rawStudents = await Student.getAllStudentsForExport();
+          data = rawStudents;
           filename = `students_${format(new Date(), 'yyyy-MM-dd')}.csv`;
           break;
 
