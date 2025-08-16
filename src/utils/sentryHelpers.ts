@@ -1,8 +1,85 @@
-import * as Sentry from '@sentry/node';
-import { Request, Response, NextFunction } from 'express';
+import * as Sentry from '@sentry/react';
 
 /**
- * Track database operations with Sentry spans
+ * Wrapper for API calls with Sentry performance monitoring
+ */
+export async function fetchWithSentry<T>(
+  url: string,
+  options: RequestInit = {},
+  spanName?: string
+): Promise<T> {
+  const method = options.method || 'GET';
+  const name = spanName || `${method} ${url}`;
+  
+  return Sentry.startSpan(
+    {
+      op: 'http.client',
+      name,
+    },
+    async (span) => {
+      span.setAttribute('http.method', method);
+      span.setAttribute('http.url', url);
+      
+      try {
+        const response = await fetch(url, options);
+        
+        span.setAttribute('http.status_code', response.status);
+        
+        if (!response.ok) {
+          const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+          Sentry.captureException(error, {
+            tags: {
+              http_status: response.status,
+              api_endpoint: url,
+            },
+          });
+          throw error;
+        }
+        
+        const data = await response.json();
+        return data as T;
+      } catch (error) {
+        span.setStatus('error');
+        throw error;
+      }
+    }
+  );
+}
+
+/**
+ * Track UI interactions with performance monitoring
+ */
+export function trackUIInteraction(
+  interactionName: string,
+  callback: () => void | Promise<void>,
+  attributes?: Record<string, any>
+) {
+  return Sentry.startSpan(
+    {
+      op: 'ui.click',
+      name: interactionName,
+    },
+    async (span) => {
+      // Add custom attributes
+      if (attributes) {
+        Object.entries(attributes).forEach(([key, value]) => {
+          span.setAttribute(key, value);
+        });
+      }
+      
+      try {
+        await callback();
+      } catch (error) {
+        span.setStatus('error');
+        Sentry.captureException(error);
+        throw error;
+      }
+    }
+  );
+}
+
+/**
+ * Track database operations
  */
 export async function trackDatabaseOperation<T>(
   operation: string,
@@ -17,24 +94,12 @@ export async function trackDatabaseOperation<T>(
     async (span) => {
       span.setAttribute('db.operation', operation);
       span.setAttribute('db.table', tableName);
-      span.setAttribute('db.system', process.env.USE_SUPABASE === 'true' ? 'postgresql' : 'sqlite');
-      
-      const startTime = Date.now();
       
       try {
         const result = await callback();
-        const duration = Date.now() - startTime;
-        
-        span.setAttribute('db.duration_ms', duration);
-        
-        // Log slow queries
-        if (duration > 1000) {
-          Sentry.captureMessage(`Slow database query: ${operation} ${tableName} took ${duration}ms`, 'warning');
-        }
-        
         return result;
       } catch (error) {
-        span.setStatus({ code: 2 }); // SpanStatusCode.Error
+        span.setStatus('error');
         Sentry.captureException(error, {
           tags: {
             db_operation: operation,
@@ -48,183 +113,109 @@ export async function trackDatabaseOperation<T>(
 }
 
 /**
- * Track external API calls
+ * Track form submissions
  */
-export async function trackExternalAPI<T>(
-  service: string,
-  endpoint: string,
-  callback: () => Promise<T>
-): Promise<T> {
-  return Sentry.startSpan(
-    {
-      op: 'http.client',
-      name: `${service} ${endpoint}`,
-    },
-    async (span) => {
-      span.setAttribute('service.name', service);
-      span.setAttribute('http.url', endpoint);
-      
-      try {
-        const result = await callback();
-        return result;
-      } catch (error) {
-        span.setStatus({ code: 2 }); // SpanStatusCode.Error
-        Sentry.captureException(error, {
-          tags: {
-            service,
-            endpoint,
-          },
-        });
-        throw error;
-      }
-    }
-  );
-}
-
-/**
- * Track email sending operations
- */
-export async function trackEmailOperation(
-  emailType: string,
-  recipient: string,
-  callback: () => Promise<boolean>
-): Promise<boolean> {
-  return Sentry.startSpan(
-    {
-      op: 'email.send',
-      name: `Send ${emailType} email`,
-    },
-    async (span) => {
-      span.setAttribute('email.type', emailType);
-      span.setAttribute('email.recipient_domain', recipient.split('@')[1] || 'unknown');
-      
-      try {
-        const success = await callback();
-        span.setAttribute('email.success', success);
-        
-        if (!success) {
-          Sentry.captureMessage(`Failed to send ${emailType} email`, 'warning');
-        }
-        
-        return success;
-      } catch (error) {
-        span.setStatus({ code: 2 }); // SpanStatusCode.Error
-        span.setAttribute('email.success', false);
-        Sentry.captureException(error, {
-          tags: {
-            email_type: emailType,
-          },
-        });
-        throw error;
-      }
-    }
-  );
-}
-
-/**
- * Track file operations
- */
-export async function trackFileOperation<T>(
-  operation: string,
-  fileType: string,
-  callback: () => Promise<T>
-): Promise<T> {
-  return Sentry.startSpan(
-    {
-      op: 'file.operation',
-      name: `${operation} ${fileType} file`,
-    },
-    async (span) => {
-      span.setAttribute('file.operation', operation);
-      span.setAttribute('file.type', fileType);
-      
-      try {
-        const result = await callback();
-        return result;
-      } catch (error) {
-        span.setStatus({ code: 2 }); // SpanStatusCode.Error
-        Sentry.captureException(error, {
-          tags: {
-            file_operation: operation,
-            file_type: fileType,
-          },
-        });
-        throw error;
-      }
-    }
-  );
-}
-
-/**
- * Middleware to create spans for route handlers
- */
-export function createRouteSpan(routeName: string) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    Sentry.startSpan(
-      {
-        op: 'http.server',
-        name: `${req.method} ${routeName}`,
-      },
-      (span) => {
-        span.setAttribute('http.method', req.method);
-        span.setAttribute('http.route', routeName);
-        span.setAttribute('http.url', req.originalUrl);
-        
-        // Track response
-        const originalSend = res.send;
-        res.send = function(data: any) {
-          span.setAttribute('http.status_code', res.statusCode);
-          
-          if (res.statusCode >= 400) {
-            span.setStatus({ code: 2 }); // SpanStatusCode.Error
-          }
-          
-          return originalSend.call(this, data);
-        };
-        
-        next();
-      }
-    );
-  };
-}
-
-/**
- * Add breadcrumb for important actions
- */
-export function addActionBreadcrumb(
-  category: string,
-  message: string,
-  data?: Record<string, any>
+export function trackFormSubmission(
+  formName: string,
+  callback: () => void | Promise<void>,
+  formData?: Record<string, any>
 ) {
+  return Sentry.startSpan(
+    {
+      op: 'form.submit',
+      name: `Submit ${formName}`,
+    },
+    async (span) => {
+      span.setAttribute('form.name', formName);
+      
+      // Add form field count but not the actual data for privacy
+      if (formData) {
+        span.setAttribute('form.field_count', Object.keys(formData).length);
+      }
+      
+      try {
+        await callback();
+        span.setAttribute('form.success', true);
+      } catch (error) {
+        span.setAttribute('form.success', false);
+        span.setStatus('error');
+        Sentry.captureException(error, {
+          contexts: {
+            form: {
+              name: formName,
+              field_count: formData ? Object.keys(formData).length : 0,
+            },
+          },
+        });
+        throw error;
+      }
+    }
+  );
+}
+
+/**
+ * Add breadcrumb for navigation
+ */
+export function addNavigationBreadcrumb(from: string, to: string) {
   Sentry.addBreadcrumb({
-    category,
-    message,
+    category: 'navigation',
+    message: `Navigated from ${from} to ${to}`,
     level: 'info',
-    data,
-    timestamp: Date.now() / 1000,
+    data: {
+      from,
+      to,
+    },
   });
 }
 
 /**
- * Track authentication events
+ * Track search operations
  */
-export function trackAuthEvent(
-  event: 'login' | 'logout' | 'signup' | 'password_reset',
-  userId?: string,
-  success: boolean = true
+export function trackSearch(
+  searchType: string,
+  query: string,
+  resultCount: number
 ) {
   Sentry.addBreadcrumb({
-    category: 'auth',
-    message: `User ${event}`,
-    level: success ? 'info' : 'warning',
+    category: 'search',
+    message: `Searched ${searchType}: "${query}"`,
+    level: 'info',
     data: {
-      event,
-      user_id: userId,
-      success,
+      search_type: searchType,
+      query_length: query.length,
+      result_count: resultCount,
     },
   });
-  
-  if (!success) {
-    Sentry.captureMessage(`Failed ${event} attempt`, 'warning');
+}
+
+/**
+ * Capture exceptions with additional context
+ */
+export function captureExceptionWithContext(
+  error: Error,
+  context: {
+    tags?: Record<string, string>;
+    user?: any;
+    extra?: Record<string, any>;
   }
+) {
+  Sentry.withScope((scope) => {
+    if (context.tags) {
+      Object.entries(context.tags).forEach(([key, value]) => {
+        scope.setTag(key, value);
+      });
+    }
+    
+    if (context.extra) {
+      Object.entries(context.extra).forEach(([key, value]) => {
+        scope.setExtra(key, value);
+      });
+    }
+    
+    if (context.user) {
+      scope.setUser(context.user);
+    }
+    
+    Sentry.captureException(error);
+  });
 }
