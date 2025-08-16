@@ -116,9 +116,9 @@ export class StudentModel {
     for (const student of students) {
       // Get consultations
       const consultationsQuery = `
-        SELECT id, consultation_date as date, status, type, duration, notes, 
+        SELECT id, consultation_date as date, attended, type, duration, notes, 
                follow_up_required as followUpRequired,
-               CASE WHEN status = 'attended' THEN 1 ELSE 0 END as attended
+               CASE WHEN attended = 1 THEN 'attended' ELSE 'scheduled' END as status
         FROM consultations
         WHERE student_id = ?
         ORDER BY consultation_date DESC
@@ -453,7 +453,8 @@ export class StudentModel {
                'id', c.id,
                'date', c.consultation_date,
                'type', c.type,
-               'status', c.status
+               'attended', c.attended,
+               'status', CASE WHEN c.attended = 1 THEN 'attended' ELSE 'scheduled' END
              )) FROM consultations c WHERE c.student_id = s.id) as consultations
       FROM students s
       ORDER BY s.last_name, s.first_name
@@ -475,7 +476,7 @@ export class StudentModel {
       FROM students s
       JOIN consultations c ON s.id = c.student_id
       WHERE DATE(c.consultation_date) = DATE(?)
-        AND c.status = 'no-show'
+        AND c.attended = 0
       ORDER BY s.last_name, s.first_name
     `;
     

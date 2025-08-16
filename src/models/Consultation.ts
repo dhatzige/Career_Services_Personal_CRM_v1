@@ -105,10 +105,11 @@ export class ConsultationModel {
       updates.push(`attended = $${paramIndex}`);
       values.push(data.attended ? 1 : 0);
       paramIndex++;
-    }
-    if (data.status !== undefined) {
-      updates.push(`status = $${paramIndex}`);
-      values.push(data.status);
+    } else if (data.status !== undefined) {
+      // Convert status to attended field since we don't have a status column
+      const attendedValue = data.status === 'attended' ? 1 : 0;
+      updates.push(`attended = $${paramIndex}`);
+      values.push(attendedValue);
       paramIndex++;
     }
     if (data.notes !== undefined) {
@@ -164,6 +165,10 @@ export class ConsultationModel {
    * Delete consultation by ID
    */
   static async delete(id: string): Promise<boolean> {
+    // First delete any related follow-up reminders to avoid foreign key constraint
+    await database.query('DELETE FROM follow_up_reminders WHERE consultation_id = $1', [id]);
+    
+    // Then delete the consultation
     const query = 'DELETE FROM consultations WHERE id = $1';
     const result = await database.query(query, [id]);
     return result.rowCount !== null && result.rowCount > 0;
@@ -269,8 +274,7 @@ export class ConsultationModel {
              s.first_name || ' ' || s.last_name as student_name,
              s.email as student_email,
              s.id as student_id_full,
-             c.status,
-             c.advisor_name
+             CASE WHEN c.attended = 1 THEN 'attended' ELSE 'scheduled' END as status
       FROM consultations c
       JOIN students s ON c.student_id = s.id
       WHERE datetime(c.consultation_date) >= datetime($1) 
@@ -288,10 +292,12 @@ export class ConsultationModel {
       date: row.consultation_date,
       duration: row.duration,
       status: row.status || 'scheduled',
-      advisorName: row.advisor_name,
       location: row.location,
       notes: row.notes,
-      topic: row.topic
+      topic: row.topic,
+      attended: row.attended === 1,
+      followUpRequired: row.follow_up_required === 1,
+      needsReview: row.needs_review === 1
     }));
   }
 

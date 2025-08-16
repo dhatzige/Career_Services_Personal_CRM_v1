@@ -83,12 +83,12 @@ export const syncCalendlyEvents = async (req: Request, res: Response): Promise<v
     
     // Get events from yesterday forward (to catch meetings from yesterday)
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     const eventsResponse = await CalendlyService.getScheduledEvents({
       user: userUri,
       min_start_time: `${yesterday}T00:00:00Z`,
-      max_start_time: `${nextWeek}T23:59:59Z`,
+      max_start_time: `${nextMonth}T23:59:59Z`,
       status: 'active'
     });
     

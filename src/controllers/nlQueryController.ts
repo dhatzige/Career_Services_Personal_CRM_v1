@@ -5,7 +5,7 @@ import { logAuditEvent } from '../middleware/security';
 
 // Initialize Claude
 const apiKey = process.env.VITE_CLAUDE_API_KEY || process.env.CLAUDE_API_KEY || '';
-console.log('Claude API Key configured:', apiKey ? `Yes (${apiKey.substring(0, 10)}...)` : 'No');
+console.log('Claude API Key configured:', apiKey ? 'Yes' : 'No');
 
 const anthropic = new Anthropic({
   apiKey: apiKey,
