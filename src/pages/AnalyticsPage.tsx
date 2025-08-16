@@ -21,6 +21,7 @@ const PRESET_RANGES: DateRange[] = [
   { start: subDays(new Date(), 90), end: new Date(), label: 'Last 90 days' },
   { start: startOfMonth(new Date()), end: endOfMonth(new Date()), label: 'This month' },
   { start: startOfMonth(subDays(new Date(), 30)), end: endOfMonth(subDays(new Date(), 30)), label: 'Last month' },
+  { start: new Date(2025, 7, 1), end: new Date(), label: 'August 2025' },
 ];
 
 const COLORS = {
@@ -66,7 +67,7 @@ const createAbbreviation = (name: string): { short: string; full: string } => {
 const AnalyticsPage: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRange, setSelectedRange] = useState<DateRange>(PRESET_RANGES[1]); // Default to last 30 days
+  const [selectedRange, setSelectedRange] = useState<DateRange>(PRESET_RANGES[5]); // Default to August 2025
   const [showRangeDropdown, setShowRangeDropdown] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -94,6 +95,8 @@ const AnalyticsPage: React.FC = () => {
       const response = await api.students.list();
       // Handle both array response and object with data property
       const studentData = Array.isArray(response) ? response : (response.data || []);
+      console.log('Analytics - Raw student data:', studentData);
+      console.log('Analytics - First student consultations:', studentData[0]?.consultations);
       // Analytics data loaded successfully
       setStudents(studentData);
     } catch (error) {
@@ -115,20 +118,63 @@ const AnalyticsPage: React.FC = () => {
 
   // Calculate advanced metrics
   const metrics = useMemo(() => {
+    // Don't calculate metrics if students data isn't loaded yet
+    if (!students.length || !filteredStudents.length) {
+      console.log('Analytics - Skipping metrics calculation - no data yet');
+      return {
+        totalStudents: 0,
+        activeStudents: 0,
+        totalConsultations: 0,
+        attendanceRate: 0,
+        avgConsultationsPerStudent: 0,
+        highEngagementStudents: 0,
+        topProgram: 'N/A',
+        noShowRate: 0,
+      };
+    }
+    
     const totalStudents = filteredStudents.length;
     const activeStudents = totalStudents; // All students are considered active
     
+    console.log('Analytics - Filtered students:', filteredStudents);
+    console.log('Analytics - Date range:', selectedRange);
+    
     // Consultations in date range
-    const consultationsInRange = filteredStudents.flatMap(s => s.consultations || [])
-      .filter(c => {
-        if (!c || !c.date) return false;
-        const date = new Date(c.date);
-        return date >= selectedRange.start && date <= selectedRange.end;
+    const allConsultations = filteredStudents.flatMap(s => s.consultations || []);
+    console.log('Analytics - All consultations:', allConsultations);
+    
+    const consultationsInRange = allConsultations.filter(c => {
+        if (!c || !c.date) {
+          console.log('Analytics - Skipping consultation with no date:', c);
+          return false;
+        }
+        const consultationDate = new Date(c.date);
+        
+        // Extend end date to end of day to catch consultations scheduled for today
+        const rangeEnd = new Date(selectedRange.end);
+        rangeEnd.setHours(23, 59, 59, 999);
+        
+        const inRange = consultationDate >= selectedRange.start && consultationDate <= rangeEnd;
+        console.log('Analytics - Consultation date check:', {
+          consultationDate: c.date,
+          parsedDate: consultationDate.toISOString(),
+          rangeStart: selectedRange.start.toISOString(),
+          rangeEnd: rangeEnd.toISOString(),
+          inRange
+        });
+        return inRange;
       });
     
+    console.log('Analytics - Consultations in range:', consultationsInRange);
+    
     const totalConsultations = consultationsInRange.length;
-    const attendedConsultations = consultationsInRange.filter(c => c.status === 'attended').length;
-    const noShowConsultations = consultationsInRange.filter(c => c.status === 'no-show').length;
+    // Fix: Check both status and attended fields for compatibility
+    const attendedConsultations = consultationsInRange.filter(c => 
+      c.status === 'attended' || c.attended === true || c.attended === 1
+    ).length;
+    const noShowConsultations = consultationsInRange.filter(c => 
+      c.status === 'no-show' || (c.attended === false || c.attended === 0)
+    ).length;
     const attendanceRate = totalConsultations > 0 ? (attendedConsultations / totalConsultations) * 100 : 0;
     
     // Average consultations per student
@@ -179,9 +225,14 @@ const AnalyticsPage: React.FC = () => {
 
   // Time series data for trend analysis
   const trendData = useMemo(() => {
+    // Don't generate trend data if no students
+    if (!students.length || !filteredStudents.length) {
+      return [];
+    }
+    
     const days = eachDayOfInterval({ start: selectedRange.start, end: selectedRange.end });
     
-    return days.map(day => {
+    const result = days.map(day => {
       const dayConsultations = filteredStudents.flatMap(s => s.consultations || [])
         .filter(c => {
           if (!c || !c.date) return false;
@@ -192,36 +243,52 @@ const AnalyticsPage: React.FC = () => {
       return {
         date: format(day, 'MMM dd'),
         consultations: dayConsultations.length,
-        attended: dayConsultations.filter(c => c.status === 'attended').length,
-        noShows: dayConsultations.filter(c => c.status === 'no-show').length,
+        attended: dayConsultations.filter(c => 
+          c.status === 'attended' || c.attended === true || c.attended === 1
+        ).length,
+        noShows: dayConsultations.filter(c => 
+          c.status === 'no-show' || (c.attended === false || c.attended === 0)
+        ).length,
       };
     });
+    
+    console.log('Analytics - Trend data:', result);
+    return result;
   }, [filteredStudents, selectedRange]);
 
   // Consultation type analysis
   const consultationTypeData = useMemo(() => {
+    // Don't calculate if no data
+    if (!students.length || !filteredStudents.length) {
+      return [];
+    }
+    
     const types: Record<string, { total: number; attended: number }> = {};
     
-    filteredStudents.forEach(s => {
-      (s.consultations || [])
-        .filter(c => {
-          if (!c || !c.date) return false;
-          const date = new Date(c.date);
-          return date >= selectedRange.start && date <= selectedRange.end;
-        })
-        .forEach(c => {
-          const type = c.type || 'General';
-          if (!types[type]) {
-            types[type] = { total: 0, attended: 0 };
-          }
-          types[type].total++;
-          if (c.status === 'attended') {
-            types[type].attended++;
-          }
-        });
+    // Use the already filtered consultations instead of re-filtering
+    const typeConsultations = filteredStudents.flatMap(s => s.consultations || [])
+      .filter(c => {
+        if (!c || !c.date) return false;
+        const consultationDate = new Date(c.date);
+        const rangeEnd = new Date(selectedRange.end);
+        rangeEnd.setHours(23, 59, 59, 999);
+        return consultationDate >= selectedRange.start && consultationDate <= rangeEnd;
+      });
+    
+    console.log('Analytics - Type consultations found:', typeConsultations);
+    
+    typeConsultations.forEach(c => {
+      const type = c.type || 'General';
+      if (!types[type]) {
+        types[type] = { total: 0, attended: 0 };
+      }
+      types[type].total++;
+      if (c.status === 'attended' || c.attended === true || c.attended === 1) {
+        types[type].attended++;
+      }
     });
     
-    return Object.entries(types)
+    const result = Object.entries(types)
       .map(([type, data]) => ({
         type,
         total: data.total,
@@ -229,10 +296,18 @@ const AnalyticsPage: React.FC = () => {
         attendanceRate: (data.attended / data.total) * 100,
       }))
       .sort((a, b) => b.total - a.total);
+    
+    console.log('Analytics - Consultation type data:', result);
+    return result;
   }, [filteredStudents, selectedRange]);
 
   // Program performance radar chart data
   const programPerformanceData = useMemo(() => {
+    // Don't calculate if no data
+    if (!students.length || !filteredStudents.length) {
+      return [];
+    }
+    
     const programs: Record<string, { students: number; consultations: number; attendance: number }> = {};
     
     filteredStudents.forEach(s => {
@@ -252,10 +327,12 @@ const AnalyticsPage: React.FC = () => {
       });
       
       programs[short].consultations += programConsultations.length;
-      programs[short].attendance += programConsultations.filter(c => c.status === 'attended').length;
+      programs[short].attendance += programConsultations.filter(c => 
+        c.status === 'attended' || c.attended === true || c.attended === 1
+      ).length;
     });
     
-    return Object.entries(programs)
+    const result = Object.entries(programs)
       .map(([program, data]) => ({
         program,
         students: data.students,
@@ -263,6 +340,9 @@ const AnalyticsPage: React.FC = () => {
         attendanceRate: data.consultations > 0 ? (data.attendance / data.consultations) * 100 : 0,
       }))
       .slice(0, 6); // Top 6 programs for radar chart
+    
+    console.log('Analytics - Program performance data:', result);
+    return result;
   }, [filteredStudents, selectedRange]);
 
   const handleExport = async () => {

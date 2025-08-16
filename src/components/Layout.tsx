@@ -147,8 +147,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: "Today's Schedule", href: '/today', icon: Clock, shortcut: 'Alt+2' },
     { name: 'Students', href: '/students', icon: Users, shortcut: 'Alt+3' },
     { name: 'Calendar', href: '/calendar', icon: Calendar, shortcut: 'Alt+4' },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3, shortcut: 'Alt+5' },
-    { name: 'Settings', href: '/settings', icon: Settings, shortcut: 'Alt+6' },
+    // { name: 'Analytics', href: '/analytics', icon: BarChart3, shortcut: 'Alt+5' }, // Future implementation
+    { name: 'Settings', href: '/settings', icon: Settings, shortcut: 'Alt+5' },
   ];
 
   const shortcuts = [

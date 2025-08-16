@@ -1,5 +1,5 @@
-# Security Policy & Audit Results
-## Career Services CRM - Version 0.12.0
+# Security Policy & Vulnerability Reporting
+## Career Services CRM - Version 0.13.2
 
 ## 🛡️ Security Audit Summary (August 12, 2025)
 

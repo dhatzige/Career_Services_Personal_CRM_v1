@@ -27,13 +27,13 @@ const apiClient: AxiosInstance = axios.create({
   timeout: 30000, // 30 seconds
 });
 
-// Cache configuration per endpoint
+// Cache configuration per endpoint - DISABLED for development to prevent race conditions
 const cacheConfig: Record<string, { ttl: number; cache: boolean }> = {
-  '/students': { ttl: 5 * 60 * 1000, cache: true }, // 5 minutes
-  '/consultations': { ttl: 3 * 60 * 1000, cache: true }, // 3 minutes
-  '/notes': { ttl: 3 * 60 * 1000, cache: true }, // 3 minutes
-  '/dashboard/stats': { ttl: 10 * 60 * 1000, cache: true }, // 10 minutes
-  '/reports': { ttl: 30 * 60 * 1000, cache: true }, // 30 minutes
+  '/students': { ttl: 5 * 60 * 1000, cache: import.meta.env.PROD }, // Only cache in production
+  '/consultations': { ttl: 3 * 60 * 1000, cache: import.meta.env.PROD }, // Only cache in production
+  '/notes': { ttl: 3 * 60 * 1000, cache: import.meta.env.PROD }, // Only cache in production
+  '/dashboard/stats': { ttl: 10 * 60 * 1000, cache: import.meta.env.PROD }, // Only cache in production
+  '/reports': { ttl: 30 * 60 * 1000, cache: true }, // Always cache reports (slow queries)
 };
 
 // Request interceptor for auth and caching

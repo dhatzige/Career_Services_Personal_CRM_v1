@@ -1,0 +1,6 @@
+Contact: security@yourdomain.com
+Expires: 2026-08-16T23:59:59.000Z
+Acknowledgments: https://github.com/your-username/career-services-crm/blob/main/SECURITY.md
+Preferred-Languages: en
+Canonical: https://github.com/your-username/career-services-crm/.well-known/security.txt
+Policy: https://github.com/your-username/career-services-crm/blob/main/SECURITY.md

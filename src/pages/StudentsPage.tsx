@@ -44,9 +44,9 @@ export default function StudentsPage() {
   const [filterConsultations, setFilterConsultations] = useState<string>(''); // New: has consultations, upcoming, etc.
   const [showFilters, setShowFilters] = useState(false);
   
-  // Track recently viewed students (last 10)
+  // Get recently viewed from RecentlyViewed component (single source of truth)
   const [recentlyViewed, setRecentlyViewed] = useState<string[]>(() => {
-    const saved = localStorage.getItem('recentlyViewedStudents');
+    const saved = localStorage.getItem('crm_recently_viewed');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -68,10 +68,8 @@ export default function StudentsPage() {
     try {
       setLoading(true);
       const data = await api.students.list();
-      console.log('Fetched students data:', data); // Debug log
       setStudents(data);
       setFilteredStudents(data);
-      console.log('Updated students state to:', data.length, 'students'); // Debug log
     } catch (error) {
       console.error('Error fetching students:', error);
       toast.error('Failed to load students');
@@ -222,16 +220,40 @@ export default function StudentsPage() {
   // Handle student update
   const handleUpdateStudent = async (id: string, updates: Partial<Student>) => {
     try {
+      
+      // Optimistic update first
+      const optimisticStudent = selectedStudent ? { ...selectedStudent, ...updates } : null;
+      if (optimisticStudent) {
+        setSelectedStudent(optimisticStudent);
+        setStudents(prev => prev.map(s => s.id === id ? optimisticStudent : s));
+        setFilteredStudents(prev => prev.map(s => s.id === id ? optimisticStudent : s));
+      }
+      
       const updatedStudent = await api.students.update(id, updates);
-      // Immediate state updates for both main and filtered lists
-      setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
-      setFilteredStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
+      
+      // Confirm with server response
+      setStudents(prev => {
+        const updated = prev.map(s => s.id === id ? updatedStudent : s);
+        console.log('Updated students state:', updated);
+        return updated;
+      });
+      setFilteredStudents(prev => {
+        const updated = prev.map(s => s.id === id ? updatedStudent : s);
+        console.log('Updated filteredStudents state:', updated);
+        return updated;
+      });
       if (selectedStudent?.id === id) {
+        console.log('Updating selectedStudent with:', updatedStudent);
         setSelectedStudent(updatedStudent);
       }
+      
       toast.success('Student updated successfully');
     } catch (error) {
       console.error('Error updating student:', error);
+      // Revert optimistic update on error
+      if (selectedStudent?.id === id) {
+        setSelectedStudent(selectedStudent);
+      }
       toast.error('Failed to update student');
     }
   };
@@ -268,11 +290,12 @@ export default function StudentsPage() {
   const handleSelectStudent = async (student: Student, tab?: string) => {
     setSelectedStudent(student);
     
-    // Track recently viewed students using the RecentlyViewed component's function
+    // Track recently viewed students using the RecentlyViewed component's function (single source of truth)
     addToRecentlyViewed(student.id);
     
-    // Also update local state for compatibility
-    const updatedRecentlyViewed = [student.id, ...recentlyViewed.filter(id => id !== student.id)].slice(0, 10);
+    // Update local state to match the RecentlyViewed component
+    const saved = localStorage.getItem('crm_recently_viewed');
+    const updatedRecentlyViewed = saved ? JSON.parse(saved) : [];
     setRecentlyViewed(updatedRecentlyViewed);
     
     // Set the tab if explicitly requested
@@ -899,7 +922,7 @@ export default function StudentsPage() {
                 totalPages={totalPages}
                 totalStudents={filteredStudents.length}
                 onPageChange={setCurrentPage}
-                onStudentUpdated={handleUpdateStudent}
+                onStudentUpdated={fetchStudents}
                 onStudentDelete={handleDeleteStudent}
                 onUpdateConsultation={handleUpdateConsultation}
               />

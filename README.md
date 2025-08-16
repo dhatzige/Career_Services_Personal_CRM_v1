@@ -1,209 +1,278 @@
-# Career Services CRM - Modern Student Management System
+# Career Services CRM 🎓
 
-> A comprehensive, production-ready CRM system for university career services to track student consultations, manage career development, and analyze engagement patterns.
+<div align="center">
 
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Available-brightgreen)](https://project-l84ibkcxy-dimitris-projects-74509e82.vercel.app)
-[![Backend API](https://img.shields.io/badge/🔗_API-Running-blue)](https://career-services-personal-crm.fly.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)](https://typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-18.3-blue)](https://reactjs.org/)
-[![License](https://img.shields.io/badge/License-MIT-green)](#license)
+[![React](https://img.shields.io/badge/React-18.0-blue)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Security](https://img.shields.io/badge/security-audited-brightgreen)](SECURITY.md)
 
-## 🚀 **Live System**
+**A comprehensive CRM system for university career services to track student consultations, manage career development, and analyze engagement patterns.**
 
-**🎯 Current Version**: v0.13.0 (August 14, 2025)  
-**🌐 Frontend**: [Live Demo on Vercel](https://project-l84ibkcxy-dimitris-projects-74509e82.vercel.app)  
-**🔗 Backend API**: [Production API on Fly.io](https://career-services-personal-crm.fly.dev)  
-**🔐 Authentication**: Secure Supabase integration  
+[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing) • [License](#-license)
 
-## ✨ **Key Features**
+</div>
 
-### 📋 **Student Management**
-- **Comprehensive profiles** with academic and career tracking
-- **Real-time status updates** for job search progress
-- **Notes system** with multiple types and tagging
-- **Recently viewed** student quick access
-- **Advanced search and filtering** across all student data
+## 🌟 Features
 
-### 📅 **Consultation Tracking**
-- **Today's Schedule** - Clean, focused daily view
-- **Calendar integration** with Calendly for automatic booking sync
-- **Attendance tracking** with no-show pattern detection
-- **Meeting types** and outcome tracking
-- **Real-time status updates** (scheduled, attended, no-show, cancelled)
+### Core Functionality
+- **👥 Student Management** - Complete student profiles with academic and career information
+- **📅 Consultation Tracking** - Schedule, track, and manage career counseling sessions
+- **📊 Analytics Dashboard** - Comprehensive insights into student engagement and outcomes
+- **📋 Note Taking** - Detailed consultation notes with categorization and tagging
+- **📈 Reporting** - Export data and generate reports for administrators
 
-### 📊 **Advanced Analytics** 
-- **Interactive dashboards** with student engagement metrics
-- **Program performance analysis** with smart abbreviations
-- **Consultation trends** and attendance patterns
-- **AI-powered insights** for strategic recommendations
-- **Export capabilities** for further analysis
+### Advanced Features
+- **🔐 Secure Authentication** - Role-based access control with Supabase integration
+- **🌙 Dark Mode** - Beautiful light and dark theme support
+- **📱 Mobile Responsive** - Works seamlessly across all devices
+- **⚡ Real-time Updates** - Live data synchronization across users
+- **🎯 Smart Filtering** - Advanced search and filtering capabilities
+- **🔄 Import/Export** - CSV import/export for bulk operations
 
-### 🔧 **Data Management**
-- **Complete CSV exports** with all student data, notes, and consultations
-- **System backups** in JSON format for migration/disaster recovery
-- **Import functionality** with validation and duplicate protection
-- **Proper field mapping** aligned with database structure
+### Technical Highlights
+- **🛡️ Security First** - Comprehensive security measures and audit trail
+- **⚡ Performance Optimized** - Fast loading with intelligent caching
+- **♿ Accessible** - WCAG compliant with keyboard navigation
+- **🧪 Well Tested** - Comprehensive test coverage with E2E testing
+- **📚 Documented** - Extensive documentation and API reference
 
-### 🎨 **Professional Interface**
-- **Modern React UI** with TypeScript throughout
-- **Dark/Light theme** switching with accessibility options
-- **Responsive design** for desktop and mobile
-- **Real-time updates** across all components
-- **Professional chart visualizations** with Recharts
+## 🚀 Quick Start
 
-## 🏗️ **Architecture**
+### Prerequisites
+- **Node.js** 18+ 
+- **npm** or **yarn**
+- **Supabase** account (free tier available)
 
-### **Hybrid Database Approach**
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-username/career-services-crm.git
+   cd career-services-crm
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   cd backend && npm install && cd ..
+   ```
+
+3. **Environment setup**
+   ```bash
+   # Frontend configuration
+   cp .env.example .env.local
+   
+   # Backend configuration
+   cp backend/.env.example backend/.env
+   ```
+
+4. **Configure Supabase**
+   - Create a project at [supabase.com](https://supabase.com)
+   - Update environment files with your credentials
+   - Run database migrations (see [setup guide](docs/setup/SUPABASE_SETUP_GUIDE.md))
+
+5. **Start development servers**
+   ```bash
+   npm run dev
+   ```
+
+Your application will be available at:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:4001
+
+## 🏗️ Architecture
+
+```mermaid
+graph TB
+    A[React Frontend] --> B[Express API]
+    B --> C[SQLite Database]
+    B --> D[Supabase Auth]
+    A --> D
+    B --> E[External APIs]
+    E --> F[Calendly]
+    E --> G[Claude AI]
+    E --> H[Email Service]
 ```
-Frontend (React/Vite) → Backend API (Express) → SQLite (data) + Supabase (auth only)
-                                ↓
-                        TypeScript Backend
-                          /backend/*
+
+### Technology Stack
+
+**Frontend**
+- React 18 with TypeScript
+- Vite for build tooling
+- TailwindCSS for styling
+- React Query for data fetching
+- React Router for navigation
+
+**Backend**
+- Node.js with Express
+- SQLite for data persistence
+- Supabase for authentication
+- JWT for session management
+- Express middleware for security
+
+**DevOps & Monitoring**
+- Playwright for E2E testing
+- Sentry for error monitoring
+- ESLint + Prettier for code quality
+- GitHub Actions for CI/CD
+
+## 📊 Screenshots
+
+<details>
+<summary>Click to view application screenshots</summary>
+
+### Dashboard
+![Dashboard](docs/images/dashboard.png)
+
+### Student Management
+![Students](docs/images/students.png)
+
+### Analytics
+![Analytics](docs/images/analytics.png)
+
+### Dark Mode
+![Dark Mode](docs/images/dark-mode.png)
+
+</details>
+
+## 📁 Project Structure
+
+```
+career-services-crm/
+├── 📁 src/                    # Frontend React application
+│   ├── 📁 components/         # Reusable UI components
+│   ├── 📁 pages/             # Route components
+│   ├── 📁 services/          # API client and external services
+│   ├── 📁 contexts/          # React contexts (auth, theme)
+│   └── 📁 utils/             # Helper functions and utilities
+├── 📁 backend/               # Express.js API server
+│   ├── 📁 src/
+│   │   ├── 📁 controllers/   # Route handlers
+│   │   ├── 📁 models/        # Database models and queries
+│   │   ├── 📁 middleware/    # Express middleware
+│   │   └── 📁 routes/        # API route definitions
+│   └── 📁 data/              # SQLite database files
+├── 📁 docs/                  # Comprehensive documentation
+├── 📁 playwright/            # End-to-end tests
+└── 📁 public/                # Static assets and files
 ```
 
-### **Technology Stack**
-- **Frontend**: React 18.3, TypeScript, Vite, TailwindCSS, Lucide Icons
-- **Backend**: Express, TypeScript, SQLite, better-sqlite3
-- **Authentication**: Supabase (invite-only system)
-- **Monitoring**: Sentry error tracking
-- **Email**: Resend API integration
-- **AI**: Anthropic Claude API for insights
-- **Deployment**: Vercel (frontend) + Fly.io (backend)
+## 🛡️ Security
 
-### **Security Features**
-- **Row Level Security (RLS)** on all Supabase tables
-- **Invite-only registration** with role-based access control
-- **Secure API endpoints** with authentication middleware
-- **Data encryption** in transit and at rest
-- **Audit logging** for security events
+This project takes security seriously. We implement:
 
-## 🚦 **Getting Started**
+- **🔐 Authentication**: Secure JWT-based auth with Supabase
+- **🛡️ Input Validation**: Comprehensive server and client-side validation
+- **🚫 SQL Injection Protection**: Parameterized queries throughout
+- **🔒 XSS Prevention**: Proper data sanitization and encoding
+- **🌐 CORS**: Properly configured cross-origin resource sharing
+- **⚡ Rate Limiting**: API endpoint protection
+- **📊 Security Headers**: Helmet.js for security headers
 
-### **Prerequisites**
-- Node.js 18+ 
-- npm or yarn
-- SQLite3
-- Supabase account (for auth)
+See our [Security Policy](SECURITY.md) for more details and vulnerability reporting.
 
-### **Quick Start**
+## 📚 Documentation
+
+- **[Getting Started Guide](docs/setup/GETTING_STARTED.md)** - Complete setup instructions
+- **[API Reference](docs/current/API_REFERENCE.md)** - Comprehensive API documentation
+- **[Deployment Guide](docs/setup/DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+- **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project
+- **[Security Policy](SECURITY.md)** - Security guidelines and reporting
+
+### Additional Resources
+- **[Folder Structure](docs/development/FOLDER_STRUCTURE.md)** - Project organization guide
+- **[Authentication Guide](docs/guides/AUTHENTICATION_GUIDE.md)** - Auth setup and configuration
+- **[Testing Guide](docs/testing/TESTING_GUIDE.md)** - Running and writing tests
+
+## 🚀 Deployment
+
+### Quick Deploy Options
+
+**Vercel (Frontend) + Fly.io (Backend)**
 ```bash
-# Clone the repository
-git clone https://github.com/dhatzige/Career_Services_Personal_CRM.git
-cd Career_Services_Personal_CRM
+# Frontend
+vercel --prod
 
-# Install dependencies
-npm install
-
-# Start both servers
-npm run dev
-
-# Frontend: http://localhost:5173
-# Backend: http://localhost:4001
+# Backend
+fly deploy
 ```
 
-### **Environment Setup**
+**Docker Deployment**
 ```bash
-# Frontend (.env)
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_key
-VITE_SENTRY_DSN=your_frontend_sentry_dsn
-
-# Backend (.env)
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_KEY=your_service_key
-CLAUDE_API_KEY=your_claude_api_key
-CALENDLY_API_KEY=your_calendly_api_key
-SENTRY_DSN=your_backend_sentry_dsn
+docker-compose up -d
 ```
 
-## 📈 **Production Metrics**
+**Manual Deployment**
+See our [comprehensive deployment guide](docs/setup/DEPLOYMENT_GUIDE.md) for detailed instructions.
 
-- **🎯 Zero Production Errors** (Sentry confirmed)
-- **⚡ Fast Performance** (~200ms API response, ~2s initial load)
-- **📱 Mobile Responsive** with full feature parity
-- **🔒 Enterprise Security** with comprehensive RLS policies
-- **📊 Comprehensive Analytics** with 10+ chart types and AI insights
+## 🧪 Testing
 
-## 🔗 **Integrations**
-
-### **Current Integrations**
-- **✅ Calendly** - Automatic meeting sync and student creation
-- **✅ Supabase** - Authentication and user management
-- **✅ Sentry** - Error tracking and performance monitoring
-- **✅ Claude AI** - Intelligent insights and report generation
-
-### **Planned Integrations**
-- Email providers (Gmail, Outlook)
-- Student Information Systems (SIS)
-- Zapier for workflow automation
-- RESTful API for custom integrations
-
-## 📊 **Feature Showcase**
-
-### **Dashboard**
-Advanced analytics with student engagement metrics, program performance analysis, and AI-generated insights.
-
-### **Students Management** 
-Comprehensive student profiles with real-time updates, advanced filtering, and grid/table view options.
-
-### **Calendly Integration**
-Automatic student creation from meeting bookings with smart data extraction and consultation scheduling.
-
-### **Data Export/Import**
-Professional CSV exports with all student data, notes, and consultations. Includes comprehensive import validation.
-
-## 🛠️ **Development**
-
-### **Available Scripts**
 ```bash
-npm run dev              # Start both frontend and backend
-npm run dev:frontend     # Frontend only (port 5173)
-npm run dev:backend      # Backend only (port 4001)
-npm run build           # Build for production
-npm run test            # Run Playwright tests
-npm run lint            # Code quality check
+# Run all tests
+npm test
+
+# Unit tests
+npm run test:unit
+
+# Integration tests  
+npm run test:integration
+
+# E2E tests
+npm run test:e2e
+
+# Test coverage
+npm run test:coverage
 ```
 
-### **Database**
-```bash
-# Database location
-./backend/data/career_services.db
+## 📈 Performance
 
-# View data
-cd backend && sqlite3 data/career_services.db
-.tables
-.schema students
-```
+- **⚡ Fast Loading**: < 2s initial load time
+- **📦 Optimized Bundle**: Tree-shaking and code splitting
+- **🔄 Efficient Caching**: Smart API and browser caching
+- **📱 Mobile Optimized**: Optimized for mobile performance
 
-## 📝 **Documentation**
+## 🤝 Contributing
 
-- **📋 API Reference**: `/docs/current/API_REFERENCE.md`
-- **🏗️ Architecture**: `/docs/current/ARCHITECTURE_OVERVIEW.md`
-- **🚀 Deployment**: `/docs/setup/DEPLOYMENT_GUIDE.md`
-- **🔧 Development**: `/docs/development/`
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-## 🤝 **Contributing**
+### Quick Contribution Steps
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
-This is a portfolio project showcasing modern full-stack development practices. Feel free to explore the code, suggest improvements, or use it as a learning resource.
+## 📄 License
 
-### **Key Highlights**
-- **Clean Architecture** with proper separation of concerns
-- **TypeScript Throughout** for type safety and maintainability
-- **Comprehensive Testing** with E2E Playwright tests
-- **Security Best Practices** with RLS and proper authentication
-- **Production Ready** with live deployments and monitoring
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📄 **License**
+## 🙏 Acknowledgments
 
-MIT License - feel free to use this project as a learning resource or adapt for your own needs.
+- **Supabase** for authentication infrastructure
+- **Vercel** for hosting and deployment
+- **TailwindCSS** for the design system
+- **React** ecosystem for the frontend framework
+- **Open Source Community** for the amazing tools and libraries
 
-## 👤 **Author**
+## 📞 Support
 
-**Dimitris Chatzigeorgiou**  
-- 📧 Email: dhatzige@act.edu
-- 🔗 LinkedIn: [Connect with me](https://linkedin.com/in/dimitris-chatzigeorgiou)
-- 🌐 Portfolio: [View my work](https://github.com/dhatzige)
+- **📧 Email**: support@yourdomain.com
+- **🐛 Issues**: [GitHub Issues](https://github.com/your-username/career-services-crm/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/your-username/career-services-crm/discussions)
+- **🔒 Security**: [Security Policy](SECURITY.md)
+
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=your-username/career-services-crm&type=Date)](https://star-history.com/#your-username/career-services-crm&Date)
 
 ---
 
-*Built with ❤️ for efficient career services management*
+<div align="center">
+
+**Made with ❤️ for university career services teams worldwide**
+
+[⬆ Back to Top](#career-services-crm-)
+
+</div>

@@ -84,14 +84,21 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     tags: [] as string[]
   });
 
-  const [consultationForm, setConsultationForm] = useState({
-    scheduledDate: new Date().toISOString().slice(0, 16),
-    duration: 30,
-    type: 'General' as typeof CONSULTATION_TYPES[number],
-    location: 'online',
-    meetingLink: '',
-    notes: '',
-    status: 'scheduled' as 'scheduled' | 'attended' | 'no-show' | 'cancelled'
+  const [consultationForm, setConsultationForm] = useState(() => {
+    // Default to next business day at 10:00 AM
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0);
+    
+    return {
+      scheduledDate: tomorrow.toISOString().slice(0, 16),
+      duration: 30,
+      type: 'General' as typeof CONSULTATION_TYPES[number],
+      location: 'online',
+      meetingLink: '',
+      notes: '',
+      status: 'scheduled' as 'scheduled' | 'attended' | 'no-show' | 'cancelled'
+    };
   });
 
   // Handle save/update
@@ -181,14 +188,19 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
       status: consultationForm.status  // Use the form's status
     });
 
+    // Reset with sensible default time
+    const nextDay = new Date();
+    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setHours(10, 0, 0, 0);
+    
     setConsultationForm({
-      scheduledDate: new Date().toISOString().slice(0, 16),
+      scheduledDate: nextDay.toISOString().slice(0, 16),
       duration: 30,
       type: 'General',
       location: 'online',
       meetingLink: '',
       notes: '',
-      status: 'scheduled'  // Reset to scheduled for next consultation
+      status: 'scheduled'
     });
     setShowAddConsultation(false);
   };
@@ -1135,8 +1147,13 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                             size="sm"
                             onClick={() => {
                               setShowAddConsultation(false);
+                              // Reset with sensible default time
+                              const nextDay = new Date();
+                              nextDay.setDate(nextDay.getDate() + 1);
+                              nextDay.setHours(10, 0, 0, 0);
+                              
                               setConsultationForm({
-                                scheduledDate: new Date().toISOString().slice(0, 16),
+                                scheduledDate: nextDay.toISOString().slice(0, 16),
                                 duration: 30,
                                 type: 'General',
                                 location: 'online',

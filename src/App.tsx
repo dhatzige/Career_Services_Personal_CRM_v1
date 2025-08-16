@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { SupabaseAuthProvider as AuthProvider } from './contexts/CleanSupabaseAuth';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -19,7 +19,7 @@ const StudentDetailPage = lazy(() => import('./pages/StudentDetailPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const CalendarPage = lazy(() => import('./pages/Calendar'));
 const TodayView = lazy(() => import('./components/TodayView').then(module => ({ default: module.default })));
-const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
+// const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage')); // Future implementation
 
 // Loading component with better UX
 const LoadingSpinner = () => (
@@ -116,17 +116,10 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Analytics route disabled - redirect to dashboard */}
             <Route
               path="/analytics"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <AnalyticsPage />
-                    </Suspense>
-                  </Layout>
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/" replace />}
             />
             <Route
               path="/settings"
