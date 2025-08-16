@@ -244,7 +244,7 @@ export default function CalendlyEmbed({
 
   return (
     <div className="space-y-4">
-      {config.eventTypes.length > 1 && (
+      {config.eventTypes && config.eventTypes.length > 1 && (
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Select Meeting Type

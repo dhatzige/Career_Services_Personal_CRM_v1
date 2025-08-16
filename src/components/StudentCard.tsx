@@ -52,24 +52,24 @@ export default function StudentCard({ student, onClick }: StudentCardProps) {
     }
   };
 
-  const daysSinceInteraction = student.last_interaction 
-    ? Math.floor((new Date().getTime() - new Date(student.last_interaction).getTime()) / (1000 * 3600 * 24))
+  const daysSinceInteraction = student.lastInteraction 
+    ? Math.floor((new Date().getTime() - new Date(student.lastInteraction).getTime()) / (1000 * 3600 * 24))
     : null;
 
   return (
     <Card 
-      className="hover:shadow-xl transition-all duration-200 cursor-pointer dark:bg-gray-800 dark:border-gray-700 group hover:scale-[1.02] overflow-hidden"
+      className="hover:shadow-xl transition-all duration-200 cursor-pointer dark:bg-gray-800 dark:border-gray-700 group hover:scale-[1.02] overflow-hidden h-full flex flex-col"
       onClick={onClick}
     >
       {/* Color accent bar at top */}
-      <div className={`h-1 ${getStatusColor(student.job_search_status).split(' ')[0]}`} />
+      <div className={`h-1 ${getStatusColor(student.jobSearchStatus).split(' ')[0]}`} />
       
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start mb-2">
           <div className="flex-1">
             <div className="flex items-start gap-2">
               <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                {student.first_name} {student.last_name}
+                {student.firstName} {student.lastName}
               </CardTitle>
               {/* New/Upcoming consultation indicators */}
               {isNewStudent(student) && (
@@ -92,38 +92,38 @@ export default function StudentCard({ student, onClick }: StudentCardProps) {
               )}
             </div>
             <div className="flex items-center gap-3 mt-1">
-              {student.year_of_study && (
-                <Badge variant="secondary" className={`text-xs ${getYearBadgeColor(student.year_of_study)}`}>
-                  {student.year_of_study}
+              {student.yearOfStudy && (
+                <Badge variant="secondary" className={`text-xs ${getYearBadgeColor(student.yearOfStudy)}`}>
+                  {student.yearOfStudy}
                 </Badge>
               )}
-              {student.program_type && (
+              {student.programType && (
                 <Badge variant="outline" className="text-xs">
-                  {student.program_type}
+                  {student.programType}
                 </Badge>
               )}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {student.resume_on_file && (
+            {student.resumeOnFile && (
               <FileText className="h-4 w-4 text-green-500" title="Resume on file" />
             )}
-            {student.linkedin_url && (
+            {student.linkedinUrl && (
               <Linkedin className="h-4 w-4 text-blue-500" title="LinkedIn profile available" />
             )}
             {hasHighNoShows && (
-              <AlertCircle className="h-5 w-5 text-red-500" title={`${student.no_show_count} no-shows`} />
+              <AlertCircle className="h-5 w-5 text-red-500" title={`${student.noShowCount} no-shows`} />
             )}
           </div>
         </div>
-        {student.job_search_status && (
-          <Badge className={`${getStatusColor(student.job_search_status)} font-medium`}>
-            {student.job_search_status}
+        {student.jobSearchStatus && (
+          <Badge className={`${getStatusColor(student.jobSearchStatus)} font-medium`}>
+            {student.jobSearchStatus}
           </Badge>
         )}
       </CardHeader>
       
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 flex-1 flex flex-col justify-between">
         <div className="grid grid-cols-1 gap-2">
           {student.email && (
             <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300">
@@ -147,19 +147,19 @@ export default function StudentCard({ student, onClick }: StudentCardProps) {
           )}
         </div>
         
-        {student.career_interests && student.career_interests.length > 0 && (
+        {student.careerInterests && student.careerInterests.length > 0 && (
           <div className="pt-2 border-t dark:border-gray-700">
             <div className="flex items-start text-sm">
               <Briefcase className="mr-2 h-4 w-4 flex-shrink-0 text-gray-500 mt-0.5" />
               <div className="flex flex-wrap gap-1">
-                {student.career_interests.slice(0, 3).map((interest, idx) => (
+                {student.careerInterests.slice(0, 3).map((interest, idx) => (
                   <Badge key={idx} variant="secondary" className="text-xs">
                     {interest}
                   </Badge>
                 ))}
-                {student.career_interests.length > 3 && (
+                {student.careerInterests.length > 3 && (
                   <Badge variant="secondary" className="text-xs">
-                    +{student.career_interests.length - 3}
+                    +{student.careerInterests.length - 3}
                   </Badge>
                 )}
               </div>
@@ -167,23 +167,23 @@ export default function StudentCard({ student, onClick }: StudentCardProps) {
           </div>
         )}
 
-        {(student.target_industries?.length > 0 || student.target_locations?.length > 0) && (
+        {(student.targetIndustries?.length > 0 || student.targetLocations?.length > 0) && (
           <div className="space-y-2 pt-2 border-t dark:border-gray-700">
-            {student.target_industries?.length > 0 && (
+            {student.targetIndustries?.length > 0 && (
               <div className="flex items-start text-sm">
                 <Building className="mr-2 h-4 w-4 flex-shrink-0 text-gray-500 mt-0.5" />
                 <span className="text-gray-600 dark:text-gray-400 truncate">
-                  {student.target_industries.slice(0, 2).join(', ')}
-                  {student.target_industries.length > 2 && ` +${student.target_industries.length - 2}`}
+                  {student.targetIndustries.slice(0, 2).join(', ')}
+                  {student.targetIndustries.length > 2 && ` +${student.targetIndustries.length - 2}`}
                 </span>
               </div>
             )}
-            {student.target_locations?.length > 0 && (
+            {student.targetLocations?.length > 0 && (
               <div className="flex items-start text-sm">
                 <MapPin className="mr-2 h-4 w-4 flex-shrink-0 text-gray-500 mt-0.5" />
                 <span className="text-gray-600 dark:text-gray-400 truncate">
-                  {student.target_locations.slice(0, 2).join(', ')}
-                  {student.target_locations.length > 2 && ` +${student.target_locations.length - 2}`}
+                  {student.targetLocations.slice(0, 2).join(', ')}
+                  {student.targetLocations.length > 2 && ` +${student.targetLocations.length - 2}`}
                 </span>
               </div>
             )}
@@ -205,10 +205,10 @@ export default function StudentCard({ student, onClick }: StudentCardProps) {
           </div>
         )}
 
-        {student.quick_note && (
+        {student.quickNote && (
           <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
             <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
-              {student.quick_note}
+              {student.quickNote}
             </p>
           </div>
         )}
@@ -226,9 +226,9 @@ export default function StudentCard({ student, onClick }: StudentCardProps) {
               </div>
             )}
           </div>
-          {student.no_show_count && student.no_show_count > 0 && (
+          {student.noShowCount > 0 && (
             <div className="text-red-600 dark:text-red-400 font-medium">
-              {student.no_show_count} no-show{student.no_show_count > 1 ? 's' : ''}
+              {student.noShowCount} no-show{student.noShowCount > 1 ? 's' : ''}
             </div>
           )}
         </div>

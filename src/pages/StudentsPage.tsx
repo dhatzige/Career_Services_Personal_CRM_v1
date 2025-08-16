@@ -68,8 +68,10 @@ export default function StudentsPage() {
     try {
       setLoading(true);
       const data = await api.students.list();
+      console.log('Fetched students data:', data); // Debug log
       setStudents(data);
       setFilteredStudents(data);
+      console.log('Updated students state to:', data.length, 'students'); // Debug log
     } catch (error) {
       console.error('Error fetching students:', error);
       toast.error('Failed to load students');
@@ -102,6 +104,7 @@ export default function StudentsPage() {
   useEffect(() => {
     fetchStudents();
   }, []);
+
 
   // Don't fetch consultations separately - they're already included in the student data
   // This was causing N+1 query problem and slow loading
@@ -205,7 +208,9 @@ export default function StudentsPage() {
   const handleAddStudent = async (studentData: Partial<Student>) => {
     try {
       const newStudent = await api.students.create(studentData);
+      // Immediate state update
       setStudents(prev => [...prev, newStudent]);
+      setFilteredStudents(prev => [...prev, newStudent]);
       setShowAddModal(false);
       toast.success('Student added successfully');
     } catch (error) {
@@ -218,7 +223,9 @@ export default function StudentsPage() {
   const handleUpdateStudent = async (id: string, updates: Partial<Student>) => {
     try {
       const updatedStudent = await api.students.update(id, updates);
+      // Immediate state updates for both main and filtered lists
       setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
+      setFilteredStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
       if (selectedStudent?.id === id) {
         setSelectedStudent(updatedStudent);
       }
@@ -233,7 +240,20 @@ export default function StudentsPage() {
   const handleDeleteStudent = async (id: string) => {
     try {
       await api.students.delete(id);
+      // Immediate state updates for both main and filtered lists
       setStudents(prev => prev.filter(s => s.id !== id));
+      setFilteredStudents(prev => prev.filter(s => s.id !== id));
+      // Clean up related state
+      setStudentNotes(prev => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
+      setStudentConsultations(prev => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
       if (selectedStudent?.id === id) {
         setSelectedStudent(null);
       }
@@ -281,17 +301,41 @@ export default function StudentsPage() {
   const handleAddNote = async (studentId: string, noteData: Partial<Note>) => {
     try {
       const newNote = await api.notes.create(studentId, noteData);
+      
+      // Immediate state updates
       setStudentNotes(prev => ({
         ...prev,
         [studentId]: [...(prev[studentId] || []), newNote]
       }));
+      
+      // Update student in main state to include the new note and update lastInteraction
+      const currentTime = new Date().toISOString();
+      setStudents(prev => prev.map(student => {
+        if (student.id === studentId) {
+          return {
+            ...student,
+            notes: [...(student.notes || []), newNote],
+            lastInteraction: currentTime
+          };
+        }
+        return student;
+      }));
+      
+      setFilteredStudents(prev => prev.map(student => {
+        if (student.id === studentId) {
+          return {
+            ...student,
+            notes: [...(student.notes || []), newNote],
+            lastInteraction: currentTime
+          };
+        }
+        return student;
+      }));
+      
       toast.success('Note added successfully');
       
       // Keep the modal on notes tab
       setModalActiveTab('notes');
-      
-      // Refresh students list to update notes count in table view
-      fetchStudents();
     } catch (error) {
       console.error('Error adding note:', error);
       toast.error('Failed to add note');
@@ -319,17 +363,38 @@ export default function StudentsPage() {
   const handleDeleteNote = async (noteId: string, studentId: string) => {
     try {
       await api.notes.delete(noteId);
+      
+      // Immediate state updates
       setStudentNotes(prev => ({
         ...prev,
         [studentId]: prev[studentId].filter(n => n.id !== noteId)
       }));
+      
+      // Update student in main state to remove the note
+      setStudents(prev => prev.map(student => {
+        if (student.id === studentId) {
+          return {
+            ...student,
+            notes: student.notes ? student.notes.filter(n => n.id !== noteId) : []
+          };
+        }
+        return student;
+      }));
+      
+      setFilteredStudents(prev => prev.map(student => {
+        if (student.id === studentId) {
+          return {
+            ...student,
+            notes: student.notes ? student.notes.filter(n => n.id !== noteId) : []
+          };
+        }
+        return student;
+      }));
+      
       toast.success('Note deleted successfully');
       
       // Keep the modal on notes tab
       setModalActiveTab('notes');
-      
-      // Refresh students list to update notes count in table view
-      fetchStudents();
     } catch (error) {
       console.error('Error deleting note:', error);
       toast.error('Failed to delete note');
@@ -340,17 +405,40 @@ export default function StudentsPage() {
   const handleAddConsultation = async (studentId: string, consultationData: Partial<Consultation>) => {
     try {
       const newConsultation = await api.consultations.create(studentId, consultationData);
+      
+      // Immediately update consultations state
       setStudentConsultations(prev => ({
         ...prev,
         [studentId]: [...(prev[studentId] || []), newConsultation]
       }));
+      
+      // Immediately update students state to include the new consultation
+      setStudents(prev => prev.map(student => {
+        if (student.id === studentId) {
+          return {
+            ...student,
+            consultations: [...(student.consultations || []), newConsultation],
+            lastInteraction: newConsultation.date || new Date().toISOString()
+          };
+        }
+        return student;
+      }));
+      
+      setFilteredStudents(prev => prev.map(student => {
+        if (student.id === studentId) {
+          return {
+            ...student,
+            consultations: [...(student.consultations || []), newConsultation],
+            lastInteraction: newConsultation.date || new Date().toISOString()
+          };
+        }
+        return student;
+      }));
+      
       toast.success('Consultation scheduled successfully');
       
       // Keep the modal on consultations tab
       setModalActiveTab('consultations');
-      
-      // Refresh students list to update stats (Recent Interactions, etc.)
-      fetchStudents();
     } catch (error) {
       console.error('Error adding consultation:', error);
       toast.error('Failed to schedule consultation');
@@ -392,23 +480,49 @@ export default function StudentsPage() {
   const handleDeleteConsultation = async (consultationId: string, studentId: string) => {
     try {
       await api.consultations.delete(consultationId);
+      
+      // Immediate state updates - remove consultation from state
       setStudentConsultations(prev => ({
         ...prev,
         [studentId]: prev[studentId] ? prev[studentId].filter(c => c.id !== consultationId) : []
       }));
+      
+      // Update student in main state to remove the consultation
+      setStudents(prev => prev.map(student => {
+        if (student.id === studentId) {
+          return {
+            ...student,
+            consultations: student.consultations ? 
+              student.consultations.filter(c => c.id !== consultationId) : []
+          };
+        }
+        return student;
+      }));
+      
+      setFilteredStudents(prev => prev.map(student => {
+        if (student.id === studentId) {
+          return {
+            ...student,
+            consultations: student.consultations ? 
+              student.consultations.filter(c => c.id !== consultationId) : []
+          };
+        }
+        return student;
+      }));
+      
+      // Update selected student if it's the same one
+      if (selectedStudent?.id === studentId) {
+        setSelectedStudent(prev => prev ? {
+          ...prev,
+          consultations: prev.consultations ? 
+            prev.consultations.filter(c => c.id !== consultationId) : []
+        } : null);
+      }
+      
       toast.success('Consultation deleted successfully');
       
       // Keep the modal on consultations tab
       setModalActiveTab('consultations');
-      
-      // Refresh students list to update stats
-      fetchStudents();
-      
-      // Also refresh the selected student to ensure consultation count updates
-      if (selectedStudent?.id === studentId) {
-        const updatedStudent = await api.students.get(studentId);
-        setSelectedStudent(updatedStudent);
-      }
     } catch (error) {
       console.error('Error deleting consultation:', error);
       toast.error('Failed to delete consultation');
@@ -785,7 +899,7 @@ export default function StudentsPage() {
                 totalPages={totalPages}
                 totalStudents={filteredStudents.length}
                 onPageChange={setCurrentPage}
-                onStudentUpdated={fetchStudents}
+                onStudentUpdated={handleUpdateStudent}
                 onStudentDelete={handleDeleteStudent}
                 onUpdateConsultation={handleUpdateConsultation}
               />

@@ -14,7 +14,6 @@ export const NOTE_TYPES = [
 ] as const;
 
 export const CONSULTATION_TYPES = [
-  'General',
   'Introduction Meeting',
   'Career Counseling',
   'Resume Review',
@@ -22,6 +21,7 @@ export const CONSULTATION_TYPES = [
   'Job Search Strategy',
   'Internship Planning',
   'Graduate School',
+  'General',
   'Follow-up'
 ] as const;
 

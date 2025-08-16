@@ -1290,7 +1290,7 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             isOpen={typeModalData.isOpen}
             onClose={() => setTypeModalData({ isOpen: false, consultationId: '', currentType: '' })}
             consultationId={typeModalData.consultationId}
-            studentName={`${student.firstName} ${student.lastName}`}
+            studentName={student ? `${student.firstName} ${student.lastName}` : 'New Student'}
             currentType={typeModalData.currentType}
             onTypeSelect={async (type) => {
               try {
