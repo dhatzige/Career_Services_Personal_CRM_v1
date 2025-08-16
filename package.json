@@ -14,8 +14,7 @@
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report",
-    "server:install": "cd backend && npm install",
-    "postinstall": "npm run server:install"
+    "server:install": "cd backend && npm install"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.15",
