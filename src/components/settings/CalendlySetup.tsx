@@ -8,7 +8,7 @@ export default function CalendlySetup() {
   const handleManualSync = async () => {
     try {
       setSyncing(true);
-      const response = await fetch('http://localhost:4001/api/calendar/webhook/sync', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/calendar/webhook/sync`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
