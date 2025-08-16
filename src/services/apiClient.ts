@@ -27,13 +27,13 @@ const apiClient: AxiosInstance = axios.create({
   timeout: 30000, // 30 seconds
 });
 
-// Cache configuration per endpoint - DISABLED for development to prevent race conditions
+// Cache configuration per endpoint - DISABLED to prevent inconsistent behavior
 const cacheConfig: Record<string, { ttl: number; cache: boolean }> = {
-  '/students': { ttl: 5 * 60 * 1000, cache: import.meta.env.PROD }, // Only cache in production
-  '/consultations': { ttl: 3 * 60 * 1000, cache: import.meta.env.PROD }, // Only cache in production
-  '/notes': { ttl: 3 * 60 * 1000, cache: import.meta.env.PROD }, // Only cache in production
-  '/dashboard/stats': { ttl: 10 * 60 * 1000, cache: import.meta.env.PROD }, // Only cache in production
-  '/reports': { ttl: 30 * 60 * 1000, cache: true }, // Always cache reports (slow queries)
+  '/students': { ttl: 5 * 60 * 1000, cache: false }, // Disabled - causing inconsistent updates
+  '/consultations': { ttl: 3 * 60 * 1000, cache: false }, // Disabled - causing inconsistent updates
+  '/notes': { ttl: 3 * 60 * 1000, cache: false }, // Disabled - causing inconsistent updates
+  '/dashboard/stats': { ttl: 10 * 60 * 1000, cache: false }, // Disabled - causing inconsistent updates
+  '/reports': { ttl: 30 * 60 * 1000, cache: false }, // Disabled - reports should be real-time
 };
 
 // Request interceptor for auth and caching
