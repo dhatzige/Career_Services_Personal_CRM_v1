@@ -17,6 +17,7 @@ import logger, { requestLogger, logSecurityEvent } from './utils/logger';
 import { initMonitoring, errorTrackingMiddleware } from './utils/monitoring';
 import { initCache } from './utils/cache';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { secureConfig } from './utils/secureConfig';
 import * as Sentry from '@sentry/node';
 
 // Set security-related environment defaults
@@ -101,18 +102,22 @@ app.use(session(sessionConfig));
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests from localhost ports 5173, 5174, and 5175 (Vite dev servers)
-    const allowedOrigins = [
+    const baseOrigins = [
       'http://localhost:5173',
       'http://localhost:5174',
-      'http://localhost:5175',
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
+      'http://localhost:5175'
+    ];
     
-    // Allow all Vercel preview deployments for this project
-    const vercelPattern = /^https:\/\/project-[a-z0-9]+-dimitris-projects-74509e82\.vercel\.app$/;
+    // Get frontend URLs using secure config utility (handles comma-separated values)
+    const frontendUrls = secureConfig.getFrontendUrls();
+    const allowedOrigins = [...baseOrigins, ...frontendUrls];
+    
+    // Allow all Vercel preview deployments for this project (updated patterns)
+    const vercelPattern = /^https:\/\/career-services-personal-crm-v1-[a-z0-9]+\.vercel\.app$/;
+    const legacyVercelPattern = /^https:\/\/project-[a-z0-9]+-dimitris-projects-74509e82\.vercel\.app$/;
     
     // Allow requests with no origin (like mobile apps)
-    if (!origin || allowedOrigins.includes(origin) || vercelPattern.test(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || vercelPattern.test(origin) || legacyVercelPattern.test(origin)) {
       callback(null, true);
     } else {
       console.log(`CORS blocked origin: ${origin}`);

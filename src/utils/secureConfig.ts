@@ -126,6 +126,34 @@ class SecureConfig {
   }
 
   /**
+   * Get frontend URL for invitations (canonical production URL)
+   */
+  getFrontendUrl(): string {
+    // In production, use the canonical URL from documentation
+    if (this.config.NODE_ENV === 'production') {
+      return 'https://career-services-personal-crm-v1-9p83bvjxd.vercel.app';
+    }
+    
+    // In development, use localhost or first URL from FRONTEND_URL
+    const frontendUrl = this.config.FRONTEND_URL;
+    if (frontendUrl) {
+      return frontendUrl.split(',')[0].trim();
+    }
+    
+    return 'http://localhost:5173';
+  }
+
+  /**
+   * Get all frontend URLs for CORS (supports comma-separated values)
+   */
+  getFrontendUrls(): string[] {
+    const frontendUrl = this.config.FRONTEND_URL;
+    if (!frontendUrl) return [];
+    
+    return frontendUrl.split(',').map(url => url.trim()).filter(Boolean);
+  }
+
+  /**
    * Mask sensitive value for safe display
    */
   getMasked(key: string): string {

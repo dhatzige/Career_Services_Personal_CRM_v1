@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
 import { requireAuth, requireRole, supabase } from '../middleware/supabaseAuth';
 import { handleValidationErrors } from '../middleware/security';
+import { secureConfig } from '../utils/secureConfig';
 import crypto from 'crypto';
 import logger from '../utils/logger';
 
@@ -49,10 +50,10 @@ router.get('/invitations',
 
       if (error) throw error;
 
-      // Add invitation URLs
+      // Add invitation URLs using canonical frontend URL
       const invitationsWithUrls = invitations?.map(inv => ({
         ...inv,
-        invitation_url: `${process.env.FRONTEND_URL}/register?token=${inv.token}`
+        invitation_url: `${secureConfig.getFrontendUrl()}/register?token=${inv.token}`
       })) || [];
 
       res.json({
@@ -220,8 +221,8 @@ router.post('/invitations',
       if (error) throw error;
 
       // TODO: Send invitation email using your email service
-      // For now, just return the invitation URL
-      const invitationUrl = `${process.env.FRONTEND_URL}/register?token=${token}`;
+      // For now, just return the invitation URL using canonical frontend URL
+      const invitationUrl = `${secureConfig.getFrontendUrl()}/register?token=${token}`;
 
       res.json({
         success: true,
