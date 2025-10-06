@@ -103,6 +103,19 @@ export default function StudentsPage() {
     fetchStudents();
   }, []);
 
+  // Listen for Calendly sync events and refresh
+  useEffect(() => {
+    const handleCalendlySync = () => {
+      console.log('Calendly sync detected, refreshing students...');
+      fetchStudents();
+    };
+
+    window.addEventListener('calendly-sync-complete', handleCalendlySync);
+
+    return () => {
+      window.removeEventListener('calendly-sync-complete', handleCalendlySync);
+    };
+  }, []);
 
   // Don't fetch consultations separately - they're already included in the student data
   // This was causing N+1 query problem and slow loading

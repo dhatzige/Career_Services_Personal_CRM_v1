@@ -14,11 +14,16 @@ export default function CalendlySetup() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         toast.success(`Synced ${result.syncedCount} events from Calendly`);
+
+        // Trigger state refresh across the app
+        window.dispatchEvent(new CustomEvent('calendly-sync-complete', {
+          detail: { syncedCount: result.syncedCount, timestamp: Date.now() }
+        }));
       } else {
         toast.error('Failed to sync Calendly events');
       }

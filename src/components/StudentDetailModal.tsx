@@ -407,6 +407,7 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                                 <SelectItem value="Business - Marketing">Business - Marketing</SelectItem>
                                 <SelectItem value="Business - Hospitality">Business - Hospitality</SelectItem>
                                 <SelectItem value="Psychology">Psychology</SelectItem>
+                                <SelectItem value="Computer Science">Computer Science</SelectItem>
                                 <SelectItem value="English Literature">English Literature</SelectItem>
                                 <SelectItem value="English New Media">English New Media</SelectItem>
                                 <SelectItem value="Biology">Biology</SelectItem>

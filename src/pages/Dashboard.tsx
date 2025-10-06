@@ -22,6 +22,20 @@ const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
+  // Listen for Calendly sync events and refresh
+  useEffect(() => {
+    const handleCalendlySync = () => {
+      console.log('Calendly sync detected, refreshing dashboard...');
+      fetchDashboardData();
+    };
+
+    window.addEventListener('calendly-sync-complete', handleCalendlySync);
+
+    return () => {
+      window.removeEventListener('calendly-sync-complete', handleCalendlySync);
+    };
+  }, []);
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
